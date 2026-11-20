@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fiebre de Puntos: guía para juntar 40.900 puntos en Creality Cloud</title>
+  <meta name="description" content="Guía y simulador para juntar los puntos de Creality Cloud: registro diario con check-in Card, lotería con Premium acumulable, boosts, descargas de tus modelos y tienda de regalos.">
+  <meta name="theme-color" content="#0a2e28">
+  <meta property="og:title" content="Fiebre de Puntos">
+  <meta property="og:description" content="Guía y simulador para juntar los puntos de Creality Cloud y canjearlos en la tienda de regalos.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/anton-latin.woff" as="font" type="font/woff" crossorigin>
+  <link rel="preload" href="assets/fonts/source-sans-3-latin.woff" as="font" type="font/woff" crossorigin>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip" href="#contenido">Saltar al contenido</a>
+
+  <!-- Iconos reutilizables -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#fffaf0" stroke-width="1.6" opacity=".75"/><path d="M12 7.6l1.4 3 3.2.4-2.4 2.2.7 3.2L12 14.7 9.1 16.4l.7-3.2-2.4-2.2 3.2-.4z" fill="#fffaf0" opacity=".9"/></symbol>
+    <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2.2a2.8 2.8 0 0 0 0 5.6V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2.2a2.8 2.8 0 0 0 0-5.6z" fill="currentColor"/><path d="M14.5 6.5v11" stroke="#fffaf0" stroke-width="1.6" stroke-dasharray="2 2.2" opacity=".8"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="currentColor"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.6l4.4 4.4L19 7.4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7.2 19a5 5 0 0 1-.9-9.92A6.2 6.2 0 0 1 18.2 9.6 4.7 4.7 0 0 1 17.6 19z" fill="currentColor"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M3 8l9-4.5L21 8v9l-9 4.5L3 17z" fill="currentColor"/><path d="M3 8l9 4.5L21 8M12 12.5v9" fill="none" stroke="#fffaf0" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.6 5.9 21.1l1.4-6.8L2.2 9.6l6.9-.8z" fill="currentColor"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13.5 2L5 13.5h5.6L9.8 22 19 10h-5.8z" fill="currentColor"/></symbol>
+    <symbol id="i-card" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5" fill="currentColor"/><path d="M2.5 9.5h19" stroke="#fffaf0" stroke-width="2" opacity=".85"/><path d="M6 15h5" stroke="#fffaf0" stroke-width="1.8" stroke-linecap="round" opacity=".85"/></symbol>
+    <symbol id="i-printer" viewBox="0 0 24 24"><path d="M7 3.5h10v5H7z" fill="currentColor"/><rect x="3" y="8.5" width="18" height="8" rx="2" fill="currentColor"/><rect x="7" y="13.5" width="10" height="7" rx="1" fill="#fffaf0" stroke="currentColor" stroke-width="1.5"/></symbol>
+  </svg>
+
+  <header class="topbar">
+    <div class="wrap topbar-in">
+      <a class="brand" href="#inicio" aria-label="Fiebre de Puntos, ir al inicio">
+        <svg class="brand-coin" aria-hidden="true"><use href="#i-coin"/></svg>Fiebre de Puntos
+      </a>
+      <nav class="nav" aria-label="Secciones">
+        <a href="#guia">Guía</a>
+        <a href="#simulador">Simulador</a>
+        <a href="#descargas">Descargas</a>
+        <a href="#ruta">Ruta</a>
+        <a href="#tienda">Tienda</a>
+        <a href="#preguntas">Preguntas</a>
+      </nav>
+      <div class="live" aria-live="off">
+        <svg class="ico" aria-hidden="true"><use href="#i-coin"/></svg>
+        <span id="top-points">0</span>
+        <span class="live-sep" aria-hidden="true"></span>
+        <span id="top-temp">36,0 °C</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="contenido">
+    <!-- HERO -->
+    <section class="hero" id="inicio" style="--p:0">
+      <div class="hero-sun" aria-hidden="true"></div>
+      <div class="wrap hero-in">
+        <div class="hero-copy">
+          <h1>Fiebre de Puntos</h1>
+          <p class="lede">Una guía para juntar los <span data-goal>40.900</span> puntos de la impresora en Creality Cloud y canjearlos. Aquí ves qué hacer cada día, cuánto suma cada cosa y cuánto te falta, con un simulador para probarlo antes de empezar.</p>
+          <p class="hero-note"><span data-goal>40.900</span> puntos equivalen a 40 °C. Cada punto que ganas en el simulador sube el termómetro.</p>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="#simulador">Probar el simulador</a>
+            <a class="btn btn-ghost" href="#guia">Leer la guía</a>
+          </div>
+        </div>
+
+        <div class="thermo">
+          <svg class="thermo-svg" viewBox="0 0 260 548" role="img" id="thermo-svg" aria-label="Termómetro: 0 puntos">
+            <defs>
+              <linearGradient id="gold-fill" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#ffe9a8"/><stop offset=".45" stop-color="#f7c948"/><stop offset="1" stop-color="#c98712"/>
+              </linearGradient>
+            </defs>
+            <path class="t-glass" d="M96 435.1V52a22 22 0 0 1 44 0v383.1A50 50 0 1 1 96 435.1z"/>
+            <circle class="t-hg" cx="118" cy="480" r="36"/>
+            <rect class="t-hg mercury" x="106" y="60" width="24" height="410" rx="12"/>
+            <g id="thermo-marks"></g>
+          </svg>
+          <div class="readout">
+            <div class="temp" id="hero-temp">36,0 °C</div>
+            <div class="readout-pts" id="hero-points">0 de 40.900 puntos</div>
+            <p class="readout-status" id="hero-status">Sin fiebre todavía</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GUIA -->
+    <section class="section light" id="guia">
+      <div class="wrap">
+        <h2>De dónde salen los puntos</h2>
+        <p class="section-lede">Hay cinco fuentes y se ayudan entre sí. El registro diario es lo más seguro, la lotería y el Premium lo aceleran, y tus modelos, tu comunidad y los boosts son lo que hace crecer la cifra de verdad.</p>
+
+        <ul class="sources">
+          <li class="source">
+            <div class="fig"><span class="coin gold"><b data-fig="checkin">535</b></span><span class="fig-unit">puntos al mes</span></div>
+            <div class="source-body">
+              <h3>Registro diario</h3>
+              <p>Entra a Creality Cloud todos los días y pulsa Registrar. La tabla dura siete días: 1 punto, 10, un boleto, 30, 40, 50 y dos boletos. Al completar la semana empieza otra vez desde la primera casilla. Si faltas un día, la racha se corta.</p>
+              <p>Si faltaste uno o dos días seguidos, una <strong>check-in Card</strong> (10 puntos en la tienda) revive la racha: te da 1 punto por cada día que faltó y hoy vuelves a tener tu recompensa.</p>
+              <p class="do">Qué hacer: regístrate apenas abras Creality y ten siempre una Card guardada.</p>
+            </div>
+          </li>
+          <li class="source">
+            <div class="fig"><span class="coin silver"><b data-fig="premium">×2</b></span><span class="fig-unit">el registro con Premium</span></div>
+            <div class="source-body">
+              <h3>Lotería y Premium</h3>
+              <p>Los boletos del registro se giran en una cuadrícula de ocho premios. Lo que más sale es 100 puntos, 200 puntos y 1 GB de nube, y con suerte aparece un mes de Premium. Los premios grandes (4.500, 67.400 y 197.067 puntos) también están, pero no cuentes con ellos.</p>
+              <p>Si te toca otro mes de Premium antes de que se acabe el primero, los meses se suman. Mientras tengas Premium, la tabla del registro diario vale el doble: cuando te toca 1 boleto recibes 2, y cuando te tocan 2 recibes 4. Los premios de la ruleta no se duplican.</p>
+              <p class="do">Qué hacer: gira todos los boletos y no los dejes vencer.</p>
+            </div>
+          </li>
+          <li class="source">
+            <div class="fig"><span class="coin copper"><b data-fig="followers">×1,8</b></span><span class="fig-unit">descargas de todos tus modelos con 100 seguidores</span></div>
+            <div class="source-body">
+              <h3>Comunidad</h3>
+              <p>Sigue a otros creadores y pídeles que te sigan de vuelta. Cuando abren Creality ven tus modelos, y cada vez que subes uno también les aparece. Esas visitas se vuelven likes, guardados, descargas y boosts. Más seguidores no garantizan que un diseño se mueva, pero sí le dan más oportunidades.</p>
+              <p class="do">Qué hacer: sigue a creadores con gustos parecidos a los tuyos y agradece cuando te sigan.</p>
+            </div>
+          </li>
+          <li class="source">
+            <div class="fig"><span class="coin copper"><b data-fig="cap">120</b></span><span class="fig-unit">puntos por cada 10 descargas, como máximo</span></div>
+            <div class="source-body">
+              <h3>Descargas de tus modelos</h3>
+              <p>Cada modelo paga por bloques de 10 descargas. El primer bloque paga 10 puntos, el siguiente 20, y cada bloque paga 10 más hasta llegar a 120.</p>
+              <p>Creality muestra tus modelos nuevos igual que los demás, así que ser reciente no da ventaja. Y tampoco todos los modelos se mueven igual: muchos casi no se descargan y a duras penas llegan a 10, y unos pocos son los que dejan casi todos los puntos. En promedio un modelo junta unas <span data-fig="dlmonth">7</span> descargas al mes, pero ese promedio lo levantan los pocos que funcionan.</p>
+              <p class="do">Qué hacer: sube con constancia, mira cuáles se descargan y haz más de lo que funciona.</p>
+            </div>
+          </li>
+          <li class="source">
+            <div class="fig"><span class="coin jade"><b data-fig="boost">100</b></span><span class="fig-unit">puntos por cada boost</span></div>
+            <div class="source-body">
+              <h3>Boosts</h3>
+              <p>Cuando a alguien le gustan tus modelos, de vez en cuando te da boosts. Cada boost vale 100 puntos y cada persona da entre 1 y 4, según cuántas impresoras tiene y cuánto imprime. Quien tiene varias impresoras y las usa mucho suele dar más.</p>
+              <p>Cuantos más modelos y más seguidores tengas, más personas pasan por tu perfil y más boosts recibes.</p>
+              <p class="do">Qué hacer: sube modelos que se puedan imprimir y usar de verdad, y que quien los imprima te encuentre.</p>
+            </div>
+          </li>
+        </ul>
+
+        <p class="callout">Esta guía no es oficial. Los números de descargas y boosts son estimaciones y Creality puede cambiar sus reglas. Si algo no coincide con tu cuenta, confía en tu cuenta.</p>
+      </div>
+    </section>
+
+    <!-- SIMULADOR -->
+    <section class="section dark" id="simulador">
+      <div class="wrap">
+        <div class="sim-head">
+          <div>
+            <h2>Simulador</h2>
+            <p class="section-lede">Registra cada día, gira la lotería y sube modelos. Todo ocurre en tu navegador y no usa tu cuenta de Creality. Tu progreso queda guardado aquí mismo.</p>
+          </div>
+          <button class="btn btn-ghost" data-action="reset" type="button">Reiniciar simulador</button>
+        </div>
+
+        <noscript><p class="callout">El simulador necesita JavaScript. Actívalo en tu navegador para usarlo.</p></noscript>
+
+        <!-- Marcadores -->
+        <dl class="stats">
+          <div class="stat"><dt>Puntos</dt><dd id="st-points">0</dd></div>
+          <div class="stat"><dt>Boletos</dt><dd id="st-tickets">0</dd></div>
+          <div class="stat"><dt>Check-in Cards</dt><dd id="st-cards">0</dd></div>
+          <div class="stat" id="st-premium-box"><dt>Premium</dt><dd id="st-premium">Sin Premium</dd></div>
+          <div class="stat"><dt>Racha</dt><dd id="st-streak">0 días</dd></div>
+          <div class="stat"><dt>Día simulado</dt><dd id="st-day">0</dd></div>
+        </dl>
+
+        <!-- Registro diario -->
+        <div class="ficha ficha-wide" id="checkin">
+          <div class="ficha-head">
+            <h3>Registro diario</h3>
+            <p class="ficha-meta" id="ck-date">Hoy</p>
+          </div>
+          <div class="tray" id="tray" role="list" aria-label="Recompensas de la semana"></div>
+
+          <div class="card-banner" id="card-banner" hidden role="status"></div>
+
+          <div class="ficha-actions">
+            <button class="btn btn-primary" id="btn-claim" data-action="claim" type="button">Registrar hoy</button>
+            <button class="btn btn-ghost" data-action="next-day" type="button">Pasar al día siguiente</button>
+            <p class="hint" id="ck-hint">Registrar solo marca el día. La tabla se reinicia cuando completas los siete.</p>
+          </div>
+        </div>
+
+        <div class="duo">
+          <!-- Lotería -->
+          <div class="ficha" id="lottery">
+            <div class="ficha-head">
+              <h3>Lotería de check-in</h3>
+              <p class="ficha-meta"><span id="lt-count">0</span> boletos</p>
+            </div>
+            <div class="lottery-body">
+              <div class="raffle" id="raffle" role="group" aria-label="Cuadrícula de premios"></div>
+              <div class="lottery-side">
+                <p class="spin-result" id="spin-result" role="status" aria-live="polite">Consigue boletos en el registro diario: aparecen en los días 3 y 7 de la tabla.</p>
+                <p class="hint" id="lt-extra"></p>
+                <button class="btn btn-ghost" id="btn-spin-all" data-action="spin-all" type="button">Girar todos</button>
+                <ul class="legend" id="legend" aria-label="Premios y probabilidades de ejemplo"></ul>
+                <p class="hint">Probabilidades de ejemplo, no oficiales. El Premium no duplica estos premios.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modelos -->
+          <div class="ficha" id="models">
+            <div class="ficha-head">
+              <h3>Comunidad, modelos y boosts</h3>
+              <p class="ficha-meta" id="md-summary">Sin modelos</p>
+            </div>
+
+            <div class="ctrl">
+              <span class="ctrl-label" id="fol-label">Seguidores mutuos</span>
+              <div class="stepper" role="group" aria-labelledby="fol-label">
+                <button type="button" class="step" data-action="followers" data-delta="-10" aria-label="Quitar 10 seguidores">−10</button>
+                <output id="followers-val">0</output>
+                <button type="button" class="step" data-action="followers" data-delta="10" aria-label="Sumar 10 seguidores">+10</button>
+              </div>
+            </div>
+
+            <div class="ctrl ctrl-col">
+              <span class="ctrl-label" id="mpd-label">Modelos que subes por día al pasar los días</span>
+              <div class="chips" id="mpd-chips" role="group" aria-labelledby="mpd-label"></div>
+            </div>
+
+            <p class="hint" id="md-stuck"></p>
+
+            <div class="boost-box" id="boost-box">
+              <svg class="ico" aria-hidden="true"><use href="#i-bolt"/></svg>
+              <p id="boost-info"></p>
+            </div>
+
+            <div class="ficha-actions">
+              <button class="btn btn-primary" data-action="upload" data-n="1" type="button">Subir un modelo ahora</button>
+              <button class="btn btn-ghost" data-action="upload" data-n="5" type="button">Subir 5 ahora</button>
+            </div>
+
+            <div class="table-wrap">
+              <table class="mtable" id="mtable">
+                <caption class="sr">Tus modelos más recientes</caption>
+                <thead><tr><th scope="col">Modelo</th><th scope="col">Cómo va</th><th scope="col">Días</th><th scope="col">Descargas</th><th scope="col">Puntos</th></tr></thead>
+                <tbody id="mbody"></tbody>
+              </table>
+              <p class="hint" id="mempty">Sube un modelo y deja pasar los días. Cada uno sale con su propia suerte: unos casi no se mueven y otros despegan.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="duo">
+          <!-- Saltar en el tiempo -->
+          <div class="ficha" id="time">
+            <div class="ficha-head"><h3>Saltar en el tiempo</h3></div>
+            <p class="hint">Avanza varios días de una vez, registrándote en cada uno. Se suben los modelos por día que elegiste, ganan descargas, los boletos se acumulan y puede que lleguen boosts.</p>
+            <div class="chips">
+              <button class="chip" type="button" data-action="advance" data-days="7">7 días</button>
+              <button class="chip" type="button" data-action="advance" data-days="30">30 días</button>
+              <button class="chip" type="button" data-action="advance" data-days="90">90 días</button>
+              <button class="chip" type="button" data-action="advance" data-days="180">6 meses</button>
+            </div>
+          </div>
+
+          <!-- Actividad -->
+          <div class="ficha" id="activity">
+            <div class="ficha-head"><h3>Actividad</h3></div>
+            <ol class="log" id="log" aria-live="off"></ol>
+            <p class="hint" id="log-empty">Todavía no hay movimientos. Empieza registrando el primer día.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DESCARGAS -->
+    <section class="section light" id="descargas">
+      <div class="wrap">
+        <h2>Cuánto paga cada modelo</h2>
+        <p class="section-lede">Cada bloque de 10 descargas paga 10 puntos más que el anterior, hasta 120. Mueve la barra para ver cuántos puntos deja un modelo según las descargas que junta.</p>
+
+        <div class="ficha downloads">
+          <div class="stairs" id="stairs" role="img" aria-label="Puntos por bloque de 10 descargas: 10, 20, 30 y así hasta 120"></div>
+          <p class="hint">Sobre cada barra ves los puntos que paga ese bloque. Bajo cada barra ves las descargas del modelo cuando lo completa.</p>
+          <div class="slider-row">
+            <label for="dl-range" class="ctrl-label">Descargas de un modelo</label>
+            <input type="range" id="dl-range" min="0" max="200" step="1" value="60">
+            <output id="dl-out" for="dl-range" class="dl-out"></output>
+          </div>
+        </div>
+
+        <div class="lib">
+          <h3>Si subes modelos todos los días</h3>
+          <p>Un cálculo con descargas realistas. No todos los modelos se mueven igual: la mitad casi no se descarga, unos cuantos van bien y uno de cada cien despega. En promedio salen unas <span data-fig="dlmonth">7</span> descargas al mes por modelo, y no importa si el modelo es nuevo o viejo. Cada seguidor mutuo mueve un poco más a todos. Las cifras de cada celda son solo los puntos por descargas, sin contar el registro, la lotería ni los boosts.</p>
+          <div class="lib-ctrl">
+            <label for="lib-followers" class="ctrl-label">Seguidores mutuos</label>
+            <input class="num" id="lib-followers" type="number" min="0" max="2000" step="10" value="60" inputmode="numeric">
+          </div>
+          <div class="table-wrap">
+            <table class="ltable" id="lib-table"></table>
+          </div>
+          <p class="hint" id="lib-note"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- RUTA -->
+    <section class="section dark" id="ruta">
+      <div class="wrap">
+        <h2>Calcula tu ruta a <span data-goal>40.900</span></h2>
+        <p class="section-lede">Escribe cómo piensas jugar y mira cuánto tardas. Es un cálculo con promedios: registro todos los días, boletos girados, boosts y descargas de los modelos que subes, contando que muchos de ellos casi no se mueven. La suerte cambia el resultado, sobre todo con los modelos que despegan y los meses de Premium.</p>
+
+        <div class="route">
+          <form class="ficha route-form" id="route-form" onsubmit="return false">
+            <div class="field">
+              <label for="r-current">Puntos que tienes hoy</label>
+              <input class="num" id="r-current" type="number" min="0" step="100" value="0" inputmode="numeric">
+            </div>
+            <div class="field">
+              <label for="r-premium">Premium</label>
+              <select class="num" id="r-premium">
+                <option value="lottery" selected>Solo el que te toque en la lotería</option>
+                <option value="no">Sin Premium</option>
+                <option value="si">Premium todo el tiempo</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="r-mpd">Modelos que subes por día</label>
+              <select class="num" id="r-mpd">
+                <option value="0">Ninguno</option>
+                <option value="1" selected>1 por día</option>
+                <option value="2">2 por día</option>
+                <option value="5">5 por día</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="r-followers">Seguidores mutuos</label>
+              <input class="num" id="r-followers" type="number" min="0" max="2000" step="10" value="60" inputmode="numeric">
+            </div>
+          </form>
+
+          <div class="route-out" aria-live="polite">
+            <p class="route-big"><span id="ro-months">0</span><span class="route-unit" id="ro-unit">meses</span></p>
+            <p class="route-sub" id="ro-sub"></p>
+            <div class="stack" id="ro-stack" role="img" aria-label="Aporte por fuente"></div>
+            <ul class="stack-legend" id="ro-legend"></ul>
+            <p class="snaps" id="ro-snaps"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TIENDA -->
+    <section class="section light" id="tienda">
+      <div class="wrap">
+        <h2>Tienda de regalos y canje de prueba</h2>
+        <p class="section-lede">Los puntos se gastan en la tienda de Creality. Aquí puedes practicar: canjea una check-in Card para cuidar la racha o llega a <span data-goal>40.900</span> y haz el canje de la impresora. No canjea nada real.</p>
+
+        <div class="redeem ficha">
+          <div class="redeem-top">
+            <div>
+              <p class="redeem-reward" id="rd-reward">Creality SPARKX i7 Combo</p>
+              <p class="redeem-count"><span id="rd-points">0</span> de <span id="rd-goal">40.900</span> puntos</p>
+            </div>
+            <button class="btn btn-ghost" data-action="demo-points" type="button">Darme <span data-goal>40.900</span> puntos de prueba</button>
+          </div>
+          <div class="meter" id="rd-meter" role="progressbar" aria-valuemin="0" aria-valuemax="40900" aria-valuenow="0" aria-label="Progreso hacia la impresora">
+            <div class="meter-fill" id="rd-fill"></div>
+            <span class="mark" style="left:25%"><i id="mk-25"></i></span>
+            <span class="mark" style="left:50%"><i id="mk-50"></i></span>
+            <span class="mark" style="left:75%"><i id="mk-75"></i></span>
+          </div>
+          <p class="hint" id="rd-hint">Te faltan 40.900 puntos.</p>
+        </div>
+
+        <ul class="store" id="store-grid" aria-label="Productos de la tienda"></ul>
+        <p class="hint" id="store-note"></p>
+      </div>
+    </section>
+
+    <!-- RUTINA -->
+    <section class="section dark" id="rutina">
+      <div class="wrap">
+        <h2>Rutina para no perder la racha</h2>
+        <p class="section-lede">Marca lo que ya hiciste. La lista se guarda en tu navegador y la puedes reiniciar cuando empiece un día o una semana nueva.</p>
+        <div class="duo">
+          <div class="ficha">
+            <div class="ficha-head"><h3>Cada día</h3><button class="link" type="button" data-action="reset-list" data-group="daily">Reiniciar</button></div>
+            <ul class="checks" id="checks-daily"></ul>
+          </div>
+          <div class="ficha">
+            <div class="ficha-head"><h3>Cada semana</h3><button class="link" type="button" data-action="reset-list" data-group="weekly">Reiniciar</button></div>
+            <ul class="checks" id="checks-weekly"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section light" id="preguntas">
+      <div class="wrap narrow">
+        <h2>Preguntas frecuentes</h2>
+        <div class="faq">
+          <details>
+            <summary>¿Esta guía es oficial?</summary>
+            <p>No. La escribe un usuario de Creality Cloud con lo que ha visto en su propia cuenta. Los números de descargas, boosts y probabilidades son aproximados y Creality puede cambiar sus reglas cuando quiera. Si algo no coincide con tu cuenta, confía en tu cuenta.</p>
+          </details>
+          <details>
+            <summary>¿Qué pasa si un día no me registro?</summary>
+            <p>La racha se corta y la tabla vuelve a la primera casilla (1 punto). Si fueron uno o dos días seguidos, una check-in Card la revive: te da 1 punto por cada día que faltó y hoy vuelves a tener tu recompensa. Con tres días o más ya no hay Card que valga.</p>
+          </details>
+          <details>
+            <summary>¿Qué es la check-in Card y cuánto cuesta?</summary>
+            <p>Es un producto de la tienda de regalos que cuesta 10 puntos. Se usa cuando faltaste uno o dos días seguidos y devuelve la racha donde estaba. Los puntos que da no se duplican con Premium: siempre es 1 punto por día recuperado. Conviene tener una guardada, porque 10 puntos es poco frente a perder la racha.</p>
+          </details>
+          <details>
+            <summary>¿Los meses de Premium se suman?</summary>
+            <p>Sí. Si la lotería te da un mes y antes de que termine te da otro, los dos se acumulan.</p>
+          </details>
+          <details>
+            <summary>¿Qué duplica el Premium?</summary>
+            <p>La tabla del registro diario. Los puntos valen el doble y también los boletos: cuando te toca 1 boleto recibes 2, y cuando te tocan 2 al completar la semana recibes 4. Los premios dentro de la ruleta no se duplican: 100 puntos siguen siendo 100.</p>
+          </details>
+          <details>
+            <summary>¿Cómo funcionan los puntos por descargas?</summary>
+            <p>Cada modelo cuenta sus descargas en bloques de 10. El primer bloque paga 10 puntos, el segundo 20, el tercero 30, y así hasta 120 puntos por bloque. Desde ahí, cada 10 descargas siguen pagando 120.</p>
+          </details>
+          <details>
+            <summary>¿Subir modelos nuevos ayuda más que tener modelos viejos?</summary>
+            <p>No. Creality muestra los modelos nuevos igual que los demás, así que todos tus modelos descargan al mismo ritmo. Lo que cuenta es cuántos tienes publicados, cuánto tiempo llevan ahí y cuánta gente te sigue. Por eso la ventaja de subir cada día viene de acumular modelos, no de que sean recientes.</p>
+          </details>
+          <details>
+            <summary>¿Todos mis modelos se descargan igual?</summary>
+            <p>No. Es normal que muchos diseños casi no se muevan y a duras penas lleguen a 10 descargas, mientras unos pocos despegan. Como cada bloque de 10 descargas paga más que el anterior, esos pocos son los que dejan la mayoría de los puntos. Por eso tener 100 modelos y 100 seguidores no garantiza una cifra enorme: en el simulador, cada modelo nuevo sale con su propia suerte.</p>
+          </details>
+          <details>
+            <summary>¿Qué es un boost?</summary>
+            <p>Es un gesto de alguien a quien le gustan tus modelos. Cada boost vale 100 puntos y cada persona da entre 1 y 4, según cuántas impresoras tiene y cuánto imprime. Llegan de vez en cuando, y más cuantos más modelos y seguidores tengas.</p>
+          </details>
+          <details>
+            <summary>¿Por qué seguir a otros creadores?</summary>
+            <p>Cuando alguien te sigue, tus modelos le aparecen al abrir Creality, y cada modelo nuevo que subes también. Esas visitas se convierten en likes, guardados, descargas y boosts. Funciona mejor si sigues a creadores con gustos parecidos a los tuyos.</p>
+          </details>
+          <details>
+            <summary>¿El simulador guarda mi progreso?</summary>
+            <p>Sí, en este navegador. Si borras los datos del sitio o entras desde otro dispositivo, empiezas de cero. Puedes reiniciarlo cuando quieras con el botón del simulador.</p>
+          </details>
+          <details>
+            <summary>¿Se conecta con mi cuenta de Creality?</summary>
+            <p>No. Todo ocurre en tu navegador y la página nunca te pide usuario ni contraseña.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <p>Fiebre de Puntos es una guía hecha por un usuario de Creality Cloud. No está afiliada con Creality y los valores son aproximados.</p>
+      <p>Los números se pueden ajustar en <code>js/config.js</code>.</p>
+    </div>
+  </footer>
+
+  <!-- Canje -->
+  <dialog id="canje-dialog" aria-labelledby="canje-title">
+    <form method="dialog">
+      <h2 id="canje-title">Canje de prueba hecho</h2>
+      <p id="canje-sub"></p>
+      <ul class="breakdown" id="canje-breakdown"></ul>
+      <p class="hint" id="canje-note"></p>
+      <button class="btn btn-primary" value="close">Seguir jugando</button>
+    </form>
+    <canvas id="confetti" aria-hidden="true"></canvas>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
