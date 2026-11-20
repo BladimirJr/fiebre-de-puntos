@@ -315,6 +315,24 @@
     const t = cfg.modelTypes.find((x) => x.id === id);
     return t ? t.label : "Normal";
   }
+  // ¿La temporada tiene efecto? (si el multiplicador es 1, se esconden todos los selectores)
+  const HAS_SEASON = E.seasonMultiplier(cfg) > 1;
+  const seasonName = () => (cfg.season && cfg.season.label) || "temporada";
+  function seasonOver() { return !HAS_SEASON || state.day >= cfg.season.days; }
+  function renderSeasonChips() {
+    $("#season-ctrl").hidden = !HAS_SEASON;
+    if (!HAS_SEASON) return;
+    const over = seasonOver();
+    const on = !!state.settings.seasonal && !over;
+    const name = seasonName();
+    $("#season-chips").innerHTML =
+      '<button type="button" class="chip" data-action="season" data-on="0" aria-pressed="' + !on + '">Normales</button>' +
+      '<button type="button" class="chip" data-action="season" data-on="1" aria-pressed="' + on + '"' + (over ? " disabled" : "") + ">De " + name + " (×" + cfg.season.multiplier + ")</button>";
+    $("#season-hint").textContent = over
+      ? "La temporada de " + name + " ya pasó en el simulador: los modelos nuevos rinden a su ritmo normal."
+      : "Un modelo de " + name + " junta ×" + cfg.season.multiplier + " descargas hasta el día " + cfg.season.days + " del simulador (te quedan " + (cfg.season.days - state.day) +
+        " " + plural(cfg.season.days - state.day, "día", "días") + "). Después vuelve a su ritmo normal, y los modelos viejos no se apagan.";
+  }
   function renderCommunity() {
     const list = state.models;
     const block = cfg.downloadRate.blockSize;
@@ -327,6 +345,7 @@
       ? stuck + " de tus " + list.length + " modelos no llegan a " + block + " descargas. Es normal: unos pocos mueven casi todos los puntos."
       : "";
     $("#followers-val").textContent = state.followers;
+    renderSeasonChips();
     $("#mpd-chips").innerHTML = MPD_OPTIONS.map((n) =>
       '<button type="button" class="chip" data-action="mpd" data-n="' + n + '" aria-pressed="' + (state.settings.modelsPerDay === n) + '">' + (n === 0 ? "Ninguno" : n + " por día") + "</button>"
     ).join("");
@@ -345,7 +364,7 @@
     $("#mempty").hidden = list.length > 0;
     const shown = list.slice(-8).reverse();
     let rows = shown.map((m) =>
-      "<tr><td>" + m.name + '</td><td><span class="kind kind-' + m.kind + '">' + kindLabel(m.kind) + "</span></td><td>" + m.age + "</td><td>" + fmt(m.downloads) + "</td><td>" + fmt(E.pointsForDownloads(cfg, m.downloads)) + "</td></tr>"
+      "<tr><td>" + m.name + '</td><td><span class="kind kind-' + m.kind + '">' + kindLabel(m.kind) + "</span>" + (m.seasonal ? '<span class="kind kind-season">' + seasonName() + "</span>" : "") + "</td><td>" + m.age + "</td><td>" + fmt(m.downloads) + "</td><td>" + fmt(E.pointsForDownloads(cfg, m.downloads)) + "</td></tr>"
     ).join("");
     if (list.length > shown.length) {
       const more = list.length - shown.length;
@@ -439,17 +458,18 @@
   // Tabla "si subes modelos todos los días": puntos por descargas a 1, 3 y 6 meses y días a la meta.
   function renderLibrary() {
     const fol = clamp(num("#lib-followers", 0), 0, 2000);
+    const share = HAS_SEASON ? parseFloat($("#lib-season").value) || 0 : 0;
     const rows = [1, 2, 5];
     const cols = [{ d: 30, l: "A 1 mes" }, { d: 90, l: "A 3 meses" }, { d: 180, l: "A 6 meses" }];
     let html = "<thead><tr><th scope=\"col\">Subes por día</th>" + cols.map((c) => '<th scope="col">' + c.l + "</th>").join("") + '<th scope="col">Llegas a la meta</th></tr></thead><tbody>';
     rows.forEach((mpd) => {
       html += '<tr><th scope="row">' + mpd + " " + plural(mpd, "modelo", "modelos") + "</th>";
       cols.forEach((c) => {
-        const l = E.libraryPoints(cfg, mpd, fol, c.d);
+        const l = E.libraryPoints(cfg, mpd, fol, c.d, share);
         const big = l.points >= cfg.goal ? '<b class="over">Más de ' + fmt(cfg.goal) + "</b>" : "<b>" + fmt(l.points) + "</b>";
         html += "<td>" + big + "<small>" + fmt(l.models) + " modelos, " + fmt(l.downloads) + " descargas</small></td>";
       });
-      const r = E.projectRoute(cfg, { current: 0, premium: "lottery", modelsPerDay: mpd, followers: fol });
+      const r = E.projectRoute(cfg, { current: 0, premium: "lottery", modelsPerDay: mpd, followers: fol, seasonShare: share });
       const t = durationText(r.days);
       html += "<td><b>" + t.big + " " + t.unit + "</b><small>con registro, lotería y boosts</small></td></tr>";
     });
@@ -457,7 +477,8 @@
     const low = cfg.downloadRate.blockSize * 3;
     const stuck = Math.round(E.shareBelow(cfg, fol, 180, low) * 10);
     $("#lib-note").textContent = "Con " + fol + " " + plural(fol, "seguidor", "seguidores") + ", a los 6 meses unos " + stuck + " de cada 10 modelos siguen por debajo de " + low +
-      " descargas y casi no dejan puntos: los puntos salen sobre todo de los pocos que se mueven bien. Son promedios y en tu cuenta puede variar mucho. Los seguidores se quedan fijos en el cálculo; en la vida real crecen poco a poco, así que al empezar vas más lento. Y subir 2 o 5 modelos al día es mucho trabajo: la tabla muestra lo que pasaría, no que sea fácil.";
+      " descargas y casi no dejan puntos: los puntos salen sobre todo de los pocos que se mueven bien. Son promedios y en tu cuenta puede variar mucho. Los seguidores se quedan fijos en el cálculo; en la vida real crecen poco a poco, así que al empezar vas más lento. Y subir 2 o 5 modelos al día es mucho trabajo: la tabla muestra lo que pasaría, no que sea fácil." +
+      (share > 0 ? " La ventaja de " + seasonName() + " (×" + cfg.season.multiplier + ") dura solo los primeros " + cfg.season.days + " días; después esos modelos vuelven a su ritmo normal." : "");
   }
 
   function renderRoute() {
@@ -466,7 +487,8 @@
     const mode = sel === "si" ? true : sel === "lottery" ? "lottery" : false;
     const mpd = num("#r-mpd", 0);
     const fol = clamp(num("#r-followers", 0), 0, 2000);
-    const r = E.projectRoute(cfg, { current: cur, premium: mode, modelsPerDay: mpd, followers: fol, marks: [30, 90, 180] });
+    const share = HAS_SEASON ? parseFloat($("#r-season").value) || 0 : 0;
+    const r = E.projectRoute(cfg, { current: cur, premium: mode, modelsPerDay: mpd, followers: fol, seasonShare: share, marks: [30, 90, 180] });
     const big = $("#ro-months"), unit = $("#ro-unit"), sub = $("#ro-sub");
     if (r.days === 0) {
       big.textContent = "0";
@@ -485,6 +507,14 @@
       const prem = mode === "lottery" ? " Cuenta unos " + fmt(r.premiumShare * 100) + " % del tiempo con Premium por los meses que te toquen en la lotería." : "";
       sub.textContent = "Te faltan " + fmt(Math.max(0, cfg.goal - cur)) + " puntos y llegarías hacia " + when + "." + prem;
     }
+    // la otra cara: lo mismo con modelos normales (si elegiste temporada) o con todos de temporada
+    const alt = $("#ro-alt");
+    alt.hidden = !HAS_SEASON || mpd === 0 || r.days === 0;
+    if (!alt.hidden) {
+      const other = E.projectRoute(cfg, { current: cur, premium: mode, modelsPerDay: mpd, followers: fol, seasonShare: share > 0 ? 0 : 1 });
+      const ot = other.days === null ? "más de 10 años" : durationText(other.days).big + " " + durationText(other.days).unit;
+      alt.textContent = (share > 0 ? "Con modelos normales tardarías " : "Si todos tus modelos nuevos fueran de " + seasonName() + ", llegarías en ") + ot + ".";
+    }
     const names = { checkin: "Registro diario", lottery: "Lotería (sin premios gordos)", downloads: "Descargas de modelos", boost: "Boosts" };
     const parts = ["checkin", "lottery", "downloads", "boost"].map((k) => ({ k: k, name: names[k], v: r.parts[k] }));
     const sum = parts.reduce((a, p) => a + p.v, 0) || 1;
@@ -494,6 +524,18 @@
     const at = (d) => (r.snapshots[d] === undefined ? "" : r.snapshots[d] >= cfg.goal ? "la meta" : fmt(r.snapshots[d]) + " puntos");
     $("#ro-snaps").textContent = r.days === 0 ? "" : "Con este ritmo tendrías " + at(30) + " a los 30 días, " + at(90) + " a los 90 y " + at(180) + " a los 6 meses.";
   }
+  function fillSeasonSelects() {
+    ["#r-season", "#lib-season"].forEach((id) => {
+      const el = $(id);
+      if (!el) return;
+      el.innerHTML = '<option value="0" selected>Normales</option>' +
+        '<option value="0.5">La mitad de ' + seasonName() + "</option>" +
+        '<option value="1">Todos de ' + seasonName() + "</option>";
+    });
+    $("#r-season-field").hidden = !HAS_SEASON;
+    $("#lib-season").hidden = !HAS_SEASON;
+    $("#lib-season-label").hidden = !HAS_SEASON;
+  }
   function renderGuideFigures() {
     const set = (k, v) => $$('[data-fig="' + k + '"]').forEach((el) => { el.textContent = v; });
     set("checkin", fmt(E.monthlyCheckin(cfg, false).points));
@@ -501,6 +543,11 @@
     set("followers", "×" + fmt1(E.followerMult(cfg, 100)));
     set("cap", cfg.downloadRate.cap);
     set("boost", cfg.boost.points);
+    if (cfg.season) {
+      set("season-label", cfg.season.label);
+      set("season-mult", cfg.season.multiplier);
+      set("season-days", cfg.season.days);
+    }
     const ref = cfg.reference;
     set("ref-models", fmt(ref.models));
     set("ref-views", fmt(ref.views));
@@ -684,6 +731,7 @@
       case "spin-all": doSpinAll(); break;
       case "upload": E.uploadModels(state, cfg, parseInt(t.getAttribute("data-n"), 10)); renderAll(); break;
       case "mpd": state.settings.modelsPerDay = parseInt(t.getAttribute("data-n"), 10); renderAll(); break;
+      case "season": state.settings.seasonal = t.getAttribute("data-on") === "1"; renderAll(); break;
       case "followers":
         state.followers = clamp(state.followers + parseInt(t.getAttribute("data-delta"), 10), 0, 2000);
         renderAll();
@@ -704,6 +752,7 @@
 
   /* ---------- Arranque ---------- */
   function init() {
+    fillSeasonSelects();
     renderGuideFigures();
     buildThermoMarks();
     buildRaffle();
@@ -718,6 +767,7 @@
     document.addEventListener("click", onClick);
     $("#dl-range").addEventListener("input", renderStairs);
     $("#lib-followers").addEventListener("input", renderLibrary);
+    $("#lib-season").addEventListener("input", renderLibrary);
     $$("#route-form input, #route-form select").forEach((el) => el.addEventListener("input", renderRoute));
     document.addEventListener("change", (e) => {
       const cb = e.target.closest("[data-check]");

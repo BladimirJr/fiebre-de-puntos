@@ -548,6 +548,147 @@ test("outlook: lo que esperas en un mes sale de tus modelos, tus seguidores y la
   assert.ok(o.boostPoints > 0);
 });
 
+/* ---------- temporada (Navidad) ---------- */
+
+test("pointsForDownloads con fórmula da lo mismo que sumar bloque por bloque", () => {
+  const brute = d => {
+    let total = 0;
+    for (let b = 0; b < Math.floor(d / cfg.downloadRate.blockSize); b++) total += E.blockRate(cfg, b);
+    return total;
+  };
+  for (const d of [0, 5, 10, 19, 20, 99, 100, 119, 120, 121, 130, 250, 1000, 5000]) {
+    assert.equal(E.pointsForDownloads(cfg, d), brute(d), "descargas " + d);
+  }
+});
+
+test("la temporada está configurada: Navidad, ×4 y unos 35 días", () => {
+  assert.equal(cfg.season.label, "Navidad");
+  assert.equal(cfg.season.multiplier, 4);
+  assert.ok(cfg.season.days >= 20 && cfg.season.days <= 60);
+});
+
+// Sube un modelo "éxito" (1,9 descargas al día) normal o de temporada y lo deja vivir "days" días.
+function liveModel(seasonal, days, startDay) {
+  const s = fresh();
+  s.day = startDay || 0;
+  s.settings.seasonal = seasonal;
+  E.uploadModels(s, cfg, 1, () => 0.995);
+  for (let i = 0; i < days; i++) E.nextDay(s, cfg, NB);
+  return s.models[0];
+}
+
+test("un modelo de temporada junta ×4 descargas mientras dura la temporada", () => {
+  const normal = liveModel(false, cfg.season.days);
+  const seasonal = liveModel(true, cfg.season.days);
+  assert.equal(seasonal.seasonal, true);
+  assert.equal(normal.seasonal, false);
+  assert.ok(Math.abs(seasonal.downloads - normal.downloads * cfg.season.multiplier) <= cfg.season.multiplier + 1, normal.downloads + " vs " + seasonal.downloads);
+});
+
+test("pasada la temporada el modelo vuelve a su ritmo normal (y no se apaga)", () => {
+  const S = cfg.season.days;
+  const normal = liveModel(false, S + 40);
+  const seasonal = liveModel(true, S + 40);
+  const normalAt = liveModel(false, S);
+  const seasonalAt = liveModel(true, S);
+  const gainNormal = normal.downloads - normalAt.downloads;
+  const gainSeasonal = seasonal.downloads - seasonalAt.downloads;
+  assert.ok(gainNormal > 60, "el normal sigue ganando: " + gainNormal);
+  assert.ok(Math.abs(gainSeasonal - gainNormal) <= 2, "fuera de temporada ganan igual: " + gainNormal + " vs " + gainSeasonal);
+});
+
+test("un modelo de temporada que se sube cuando la temporada ya pasó no gana de más", () => {
+  const normal = liveModel(false, 30, cfg.season.days + 5);
+  const seasonal = liveModel(true, 30, cfg.season.days + 5);
+  assert.equal(seasonal.downloads, normal.downloads);
+});
+
+test("sin temporada en la configuración (×1) el modelo no se marca como de temporada", () => {
+  const off = Object.assign({}, cfg, { season: { label: "x", multiplier: 1, days: 35 } });
+  const s = fresh();
+  s.settings.seasonal = true;
+  E.uploadModels(s, off, 1, () => 0.5);
+  assert.equal(s.models[0].seasonal, false);
+});
+
+test("outlook cuenta los días de temporada que le quedan al mes", () => {
+  const s = fresh();
+  s.followers = 0;
+  s.settings.seasonal = true;
+  E.uploadModels(s, cfg, 1, () => 0.995);
+  const perDay = cfg.modelTypes.find(t => t.id === "hit").perDay;
+  const M = cfg.season.multiplier, S = cfg.season.days;
+  // al empezar quedan más de 30 días: todo el mes es de temporada
+  assert.ok(Math.abs(E.outlook(s, cfg).downloads - perDay * 30 * M) < 1e-9);
+  // faltando 10 días: 10 de temporada y 20 normales
+  s.day = S - 10;
+  assert.ok(Math.abs(E.outlook(s, cfg).downloads - perDay * (30 + 10 * (M - 1))) < 1e-9);
+  // ya pasó: ritmo normal
+  s.day = S + 3;
+  assert.ok(Math.abs(E.outlook(s, cfg).downloads - perDay * 30) < 1e-9);
+});
+
+test("los modelos de temporada también atraen más boosts mientras dura", () => {
+  const a = fresh(), b = fresh();
+  b.settings.seasonal = true;
+  [a, b].forEach(s => { s.followers = 60; E.uploadModels(s, cfg, 20, () => 0.995); });
+  assert.ok(E.boostRate(b, cfg, 1) > E.boostRate(a, cfg, 1));
+  assert.equal(E.boostRate(b, cfg, cfg.season.days + 1), E.boostRate(a, cfg, cfg.season.days + 1));
+});
+
+test("la biblioteca con modelos de temporada deja más descargas y más puntos", () => {
+  const none = E.libraryPoints(cfg, 1, 60, 60, 0);
+  const half = E.libraryPoints(cfg, 1, 60, 60, 0.5);
+  const all = E.libraryPoints(cfg, 1, 60, 60, 1);
+  assert.ok(half.points > none.points && all.points > half.points);
+  assert.ok(all.downloads > none.downloads);
+  assert.equal(E.libraryPoints(cfg, 1, 60, 60).points, none.points);
+  // la ventaja se diluye cuando pasa mucho tiempo, pero no desaparece
+  const long0 = E.libraryPoints(cfg, 1, 60, 360, 0), long1 = E.libraryPoints(cfg, 1, 60, 360, 1);
+  assert.ok(long1.points > long0.points);
+  assert.ok(long1.points / long0.points < all.points / none.points);
+});
+
+test("las descargas esperadas de la biblioteca coinciden con simular muchas veces", () => {
+  for (const share of [0, 1]) {
+    const days = 80, runs = 30;
+    let total = 0;
+    for (let k = 0; k < runs; k++) {
+      const rng = mulberry32(900 + k);
+      const s = fresh();
+      s.followers = 60; s.settings.modelsPerDay = 1; s.settings.seasonal = share === 1;
+      for (let i = 0; i < days; i++) E.nextDay(s, cfg, rng);
+      total += s.models.reduce((a, m) => a + m.downloads, 0);
+    }
+    const expected = E.libraryPoints(cfg, 1, 60, days, share).downloads;
+    assert.ok(Math.abs(total / runs - expected) / expected < 0.12, "temporada " + share + ": esperado " + expected + " simulado " + total / runs);
+  }
+});
+
+test("la ruta con modelos de temporada es más corta y coincide con simular con azar", () => {
+  const base = E.projectRoute(cfg, { current: 0, premium: "lottery", modelsPerDay: 1, followers: 60 });
+  const ev = E.projectRoute(cfg, { current: 0, premium: "lottery", modelsPerDay: 1, followers: 60, seasonShare: 1 });
+  assert.ok(ev.days < base.days, ev.days + " vs " + base.days);
+  const days = [];
+  for (let k = 0; k < 20; k++) {
+    const rng = mulberry32(7000 + k);
+    const s = fresh();
+    s.followers = 60; s.settings.modelsPerDay = 1; s.settings.seasonal = true;
+    let d = 0;
+    while (s.points < cfg.goal && d < 1000) { E.advance(s, cfg, 1, rng); E.spinAll(s, cfg, rng); d++; }
+    days.push(d);
+  }
+  days.sort((a, b) => a - b);
+  assert.ok(Math.abs(days[10] - ev.days) / ev.days < 0.2, "esperado " + ev.days + " simulado " + days[10]);
+});
+
+test("el efecto de la temporada llega a las partes de la ruta", () => {
+  const a = E.projectRoute(cfg, { current: 0, premium: false, modelsPerDay: 2, followers: 60, marks: [30] });
+  const b = E.projectRoute(cfg, { current: 0, premium: false, modelsPerDay: 2, followers: 60, marks: [30], seasonShare: 1 });
+  assert.ok(b.snapshots[30] > a.snapshots[30] * 1.5, b.snapshots[30] + " vs " + a.snapshots[30]);
+  assert.equal(E.projectRoute(cfg, { current: 0, premium: false, modelsPerDay: 2, followers: 60, marks: [30], seasonShare: 0 }).snapshots[30], a.snapshots[30]);
+});
+
 /* ---------- boosts ---------- */
 
 test("un boost vale 100 puntos y cada persona da de 1 a 4", () => {

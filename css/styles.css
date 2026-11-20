@@ -300,6 +300,7 @@ code { font: 600 .92em ui-monospace, "SFMono-Regular", Menlo, Consolas, monospac
 .chips { display: flex; flex-wrap: wrap; gap: .5rem; }
 .chip { min-height: 2.5rem; padding: .3rem 1rem; border: 2px solid var(--ink); border-radius: 999px; background: transparent; font-weight: 700; cursor: pointer; transition: background .15s; }
 .chip:hover { background: rgba(247, 201, 72, .35); }
+.chip:disabled { opacity: .5; cursor: not-allowed; }
 .chip[aria-pressed="true"] { background: var(--ink); color: var(--gold-1); }
 .boost-box { display: flex; align-items: flex-start; gap: .75rem; margin: .8rem 0; padding: .8rem 1rem; border: 1px solid #9fd8c2; border-radius: 12px; background: #e2f4ec; }
 .boost-box .ico { flex: none; width: 1.6rem; height: 1.6rem; color: var(--jade); }
@@ -315,6 +316,7 @@ code { font: 600 .92em ui-monospace, "SFMono-Regular", Menlo, Consolas, monospac
 .kind-mid { background: #ffefb8; }
 .kind-good { background: #ffd978; }
 .kind-hit { background: var(--jade); border-color: var(--jade); color: #fff; }
+.kind-season { margin-left: .3rem; background: #ffd9d2; border-color: #c0392b; color: #7a1c12; }
 .log { margin: 0; padding: 0; list-style: none; display: grid; gap: .4rem; max-height: 18rem; overflow: auto; }
 .log li { display: grid; grid-template-columns: 4.6rem 1fr; gap: .6rem; font-size: 1rem; }
 .log .d { font-weight: 700; color: var(--ink-2); }

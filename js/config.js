@@ -115,8 +115,17 @@
       ]
     },
 
+    // Temporada: los modelos que siguen la temática del momento (ahora, Navidad) juntan
+    // bastantes más descargas mientras dura la temporada. "multiplier" es cuántas veces
+    // más que un modelo normal (la cuenta del autor ve entre 3 y 5 veces, se usa 4) y
+    // "days" cuántos días de simulación dura (35 es una suposición: más o menos hasta
+    // Navidad). Pasada la temporada, el modelo vuelve a su ritmo normal. El mes real
+    // de "reference" NO incluía modelos de Navidad: mide el ritmo sin temporada.
+    // Para apagarla pon multiplier: 1, o cambia "label" y los números para otra fecha.
+    season: { label: "Navidad", multiplier: 4, days: 35 },
+
     // Mes real de una cuenta, tomado del panel "My Profile" de Creality Cloud
-    // (últimos 30 días, del 21 de octubre al 18 de noviembre de 2026).
+    // (últimos 30 días, del 21 de octubre al 18 de noviembre de 2026, sin modelos de Navidad).
     // Sirve para dos cosas: mostrar los números reales en la guía y calibrar el simulador.
     // "followers" es un SUPUESTO (no sale del panel): las descargas y los boosts de arriba
     // se ajustaron para que 98 modelos con unos 300 seguidores den este mes. Si tu cuenta

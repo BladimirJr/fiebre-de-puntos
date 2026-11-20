@@ -33,10 +33,10 @@
       boosts: 0,            // boosts recibidos
       modelCounter: 0,
       uploadFrac: 0,
-      models: [],           // { id, name, age, downloads, frac, blocksPaid }
+      models: [],           // { id, name, age, downloads, frac, blocksPaid, kind, perDay, seasonal }
       makeNow: 0,           // usos de MakeNow canjeados
       bought: {},           // veces que se canjeó cada producto de la tienda
-      settings: { modelsPerDay: 0 },
+      settings: { modelsPerDay: 0, seasonal: false },
       earned: { checkin: 0, lottery: 0, downloads: 0, boost: 0, demo: 0 },
       redeems: 0,
       log: []
@@ -202,10 +202,13 @@
   }
 
   // Puntos totales que deja UN modelo que llega a "downloads" descargas.
+  // Es la suma de los bloques completos, hecha con fórmula para que sea rápida:
+  // los bloques antes del tope suben de a "step" y los demás pagan el tope.
   function pointsForDownloads(cfg, downloads) {
-    var blocks = Math.floor(Math.max(0, downloads) / cfg.downloadRate.blockSize), total = 0;
-    for (var b = 0; b < blocks; b++) total += blockRate(cfg, b);
-    return total;
+    var r = cfg.downloadRate;
+    var n = Math.floor(Math.max(0, downloads) / r.blockSize);
+    var k = Math.min(n, blocksToCap(cfg) - 1);
+    return k * r.start + r.step * k * (k - 1) / 2 + (n - k) * r.cap;
   }
 
   // Cuánto se multiplican las descargas de todos tus modelos según tus seguidores mutuos.
@@ -227,6 +230,16 @@
     return (mean / totalShare(cfg)) * followerMult(cfg, followers);
   }
 
+  // ¿Está activa la temporada el día "day" de la simulación? (días 1 a cfg.season.days)
+  function seasonOn(cfg, day) {
+    return !!(cfg.season && cfg.season.multiplier > 1 && day <= cfg.season.days);
+  }
+
+  // Cuántas veces más descargas junta un modelo de temporada mientras dura (1 si no hay temporada).
+  function seasonMultiplier(cfg) {
+    return cfg.season && cfg.season.multiplier > 1 ? cfg.season.multiplier : 1;
+  }
+
   // Elige al azar qué tan bien se va a mover un modelo nuevo (sin movimiento, lento, normal, bueno o éxito).
   function pickModelType(cfg, rng) {
     var r = rng() * totalShare(cfg);
@@ -241,7 +254,7 @@
     for (var i = 0; i < n; i++) {
       var t = pickModelType(cfg, rng || Math.random);
       s.modelCounter += 1;
-      s.models.push({ id: s.modelCounter, name: "Modelo " + s.modelCounter, age: 0, downloads: 0, frac: 0, blocksPaid: 0, kind: t.id, perDay: t.perDay });
+      s.models.push({ id: s.modelCounter, name: "Modelo " + s.modelCounter, age: 0, downloads: 0, frac: 0, blocksPaid: 0, kind: t.id, perDay: t.perDay, seasonal: !!(s.settings.seasonal && seasonMultiplier(cfg) > 1) });
     }
   }
 
@@ -255,10 +268,11 @@
   // Un día de descargas para todos los modelos. Devuelve los puntos ganados.
   function tickModels(s, cfg) {
     var gained = 0, mult = followerMult(cfg, s.followers);
+    var inSeason = seasonOn(cfg, s.day) ? seasonMultiplier(cfg) : 1;
     for (var i = 0; i < s.models.length; i++) {
       var m = s.models[i];
       m.age += 1;
-      m.frac += (m.perDay === undefined ? downloadsPerDay(cfg, 0) : m.perDay) * mult;
+      m.frac += (m.perDay === undefined ? downloadsPerDay(cfg, 0) : m.perDay) * mult * (m.seasonal ? inSeason : 1);
       var whole = Math.floor(m.frac);
       m.frac -= whole;
       m.downloads += whole;
@@ -273,9 +287,10 @@
   }
 
   // Puntos que deja en promedio un modelo cuando lleva "age" días publicado (promedio sobre todos los tipos).
-  function expectedModelPoints(cfg, followers, age) {
-    var mult = followerMult(cfg, followers), sum = 0;
-    cfg.modelTypes.forEach(function (t) { sum += t.share * pointsForDownloads(cfg, t.perDay * mult * age); });
+  // "extra" son días de descargas de más (por ejemplo los de una temporada), ya multiplicados.
+  function expectedModelPoints(cfg, followers, age, extra) {
+    var mult = followerMult(cfg, followers), sum = 0, days = age + (extra || 0);
+    cfg.modelTypes.forEach(function (t) { sum += t.share * pointsForDownloads(cfg, t.perDay * mult * days); });
     return sum / totalShare(cfg);
   }
 
@@ -288,21 +303,24 @@
 
   /* ----- boosts ----- */
 
-  // Descargas que esperas por día con los modelos y seguidores que tienes ahora (promedio, sin azar).
-  function expectedDailyDownloads(s, cfg) {
-    var mult = followerMult(cfg, s.followers), perDay = 0;
+  // Descargas que esperas en un día con los modelos y seguidores que tienes (promedio, sin azar).
+  // "day" es el día de la simulación (por defecto, el próximo que se va a vivir).
+  function expectedDailyDownloads(s, cfg, day) {
+    var mult = followerMult(cfg, s.followers);
+    var inSeason = seasonOn(cfg, day === undefined ? s.day + 1 : day) ? seasonMultiplier(cfg) : 1;
+    var perDay = 0;
     for (var i = 0; i < s.models.length; i++) {
       var m = s.models[i];
-      perDay += (m.perDay === undefined ? downloadsPerDay(cfg, 0) : m.perDay) * mult;
+      perDay += (m.perDay === undefined ? downloadsPerDay(cfg, 0) : m.perDay) * mult * (m.seasonal ? inSeason : 1);
     }
     return perDay;
   }
 
-  // Personas que te dan boosts por día, en promedio: una tasa pequeña fija más una parte de tus descargas.
-  function boostRate(s, cfg) {
+  // Personas que te dan boosts en un día, en promedio: una tasa pequeña fija más una parte de tus descargas.
+  function boostRate(s, cfg, day) {
     if (!s.models.length) return 0; // sin modelos no hay a quién darle boosts
     var b = cfg.boost;
-    return Math.min(20, b.baseRate + b.perDownload * expectedDailyDownloads(s, cfg));
+    return Math.min(20, b.baseRate + b.perDownload * expectedDailyDownloads(s, cfg, day));
   }
 
   function expectedBoostsPerPerson(cfg) {
@@ -330,7 +348,7 @@
 
   // Tira los dados de un día: cuántas personas te dieron boosts y cuántos boosts en total.
   function rollBoosts(s, cfg, rng) {
-    var people = poisson(boostRate(s, cfg), rng), boosts = 0;
+    var people = poisson(boostRate(s, cfg, s.day), rng), boosts = 0;
     for (var i = 0; i < people; i++) boosts += pickBoosts(cfg, rng);
     var pts = boosts * cfg.boost.points;
     s.points += pts;
@@ -342,8 +360,16 @@
   // Lo que esperas en un mes (30 días) con los modelos y seguidores que tienes ahora.
   // Son promedios, sin azar: la vida real sube y baja mucho de un mes a otro.
   function outlook(s, cfg) {
-    var downloads = expectedDailyDownloads(s, cfg) * 30;
-    var people = boostRate(s, cfg) * 30;
+    var downloads = 0, people = 0, k, m, i;
+    var mult = followerMult(cfg, s.followers);
+    // días de temporada que le quedan al mes que viene (los modelos de temporada ganan de más)
+    var left = seasonMultiplier(cfg) > 1 ? Math.max(0, Math.min(30, cfg.season.days - s.day)) : 0;
+    var extra = left * (seasonMultiplier(cfg) - 1);
+    for (i = 0; i < s.models.length; i++) {
+      m = s.models[i];
+      downloads += (m.perDay === undefined ? downloadsPerDay(cfg, 0) : m.perDay) * mult * (30 + (m.seasonal ? extra : 0));
+    }
+    for (k = 1; k <= 30; k++) people += boostRate(s, cfg, s.day + k);
     var boosts = people * expectedBoostsPerPerson(cfg);
     return {
       downloads: downloads,
@@ -487,13 +513,22 @@
 
   // Puntos por descargas que deja una biblioteca que crece "mpd" modelos por día, pasados "days" días.
   // Usa el promedio de todos los tipos de modelo: unos pocos éxitos y muchos que casi no se mueven.
-  function libraryPoints(cfg, mpd, followers, days) {
-    var sum = 0;
-    for (var a = 1; a <= days; a++) sum += expectedModelPoints(cfg, followers, a);
-    var mean = downloadsPerDay(cfg, followers);
+  // "seasonShare" (0 a 1) es qué parte de esos modelos sigue la temporada: juntan más descargas
+  // mientras dura. Un modelo que lleva "a" días de vida a los "days" días vivió max(0, a - (days - S))
+  // días de temporada (S es la duración de la temporada).
+  function libraryPoints(cfg, mpd, followers, days, seasonShare) {
+    var M = seasonMultiplier(cfg);
+    var f = M > 1 ? clamp(seasonShare || 0, 0, 1) : 0;
+    var late = M > 1 ? Math.max(0, days - cfg.season.days) : 0;
+    var mean = downloadsPerDay(cfg, followers), sum = 0, dl = 0;
+    for (var a = 1; a <= days; a++) {
+      var e = Math.max(0, a - late);
+      sum += f ? (1 - f) * expectedModelPoints(cfg, followers, a) + f * expectedModelPoints(cfg, followers, a, (M - 1) * e) : expectedModelPoints(cfg, followers, a);
+      dl += mean * (a + f * (M - 1) * e);
+    }
     return {
       models: Math.floor(mpd * days),
-      downloads: Math.round(mpd * mean * days * (days + 1) / 2),
+      downloads: Math.round(mpd * dl),
       points: Math.round(mpd * sum)
     };
   }
@@ -546,16 +581,31 @@
     var boostEV = expectedBoostsPerPerson(cfg) * cfg.boost.points;
     var maxDays = o.maxDays || 3650;
     var perModelDay = downloadsPerDay(cfg, fol);
+    var M = seasonMultiplier(cfg);
+    var f = M > 1 ? clamp(o.seasonShare || 0, 0, 1) : 0;
+    var SD = M > 1 ? cfg.season.days : 0;
+    var emp = [0], prefix = [0];   // emp[a]: puntos esperados de un modelo de a días; prefix: sus sumas
     var marks = o.marks || [30, 90, 180, 365];
-    var checkin = 0, lottery = 0, boost = 0, S = 0;
+    var checkin = 0, lottery = 0, boost = 0;
     var hit = null, parts = null, snaps = {};
     for (var t = 1; t <= maxDays; t++) {
       var slot = cfg.checkin[(t - 1) % cfg.checkin.length];
       if (slot.type === "points") checkin += slot.value * mult;
       else lottery += slot.value * tmult * spinEV;
-      var lambda = mpd > 0 ? Math.min(20, cfg.boost.baseRate + cfg.boost.perDownload * mpd * t * perModelDay) : 0;
+      var inSeason = f && t <= SD ? 1 + f * (M - 1) : 1;
+      var lambda = mpd > 0 ? Math.min(20, cfg.boost.baseRate + cfg.boost.perDownload * mpd * t * perModelDay * inSeason) : 0;
       boost += lambda * boostEV;
-      S += expectedModelPoints(cfg, fol, t);
+      emp[t] = expectedModelPoints(cfg, fol, t);
+      prefix[t] = prefix[t - 1] + emp[t];
+      var S = prefix[t];
+      if (f) {
+        // los modelos de los últimos SD días todavía vivieron temporada: ahí cambia la cuenta
+        var tail = Math.min(SD, t), skip = t - tail;
+        S = prefix[skip];
+        for (var a = skip + 1; a <= t; a++) {
+          S += (1 - f) * emp[a] + f * expectedModelPoints(cfg, fol, a, (M - 1) * (a - skip));
+        }
+      }
       var downloads = mpd * S;
       var total = cur + checkin + lottery + boost + downloads;
       if (marks.indexOf(t) >= 0) snaps[t] = total;
@@ -565,7 +615,7 @@
       }
       if (hit !== null && t >= 365) break;
     }
-    if (hit === null) parts = { checkin: checkin, lottery: lottery, downloads: mpd * S, boost: boost };
+    if (hit === null) parts = { checkin: checkin, lottery: lottery, downloads: downloads, boost: boost };
     return { days: hit, months: hit === null ? null : hit / 30.44, parts: parts, snapshots: snaps, current: cur, premiumShare: q };
   }
 
@@ -594,6 +644,8 @@
     shareBelow: shareBelow,
     boostRate: boostRate,
     outlook: outlook,
+    seasonMultiplier: seasonMultiplier,
+    seasonOn: seasonOn,
     expectedBoostsPerPerson: expectedBoostsPerPerson,
     chances: chances,
     expectedPointsPerSpin: expectedPointsPerSpin,
