@@ -417,7 +417,7 @@ test("cada modelo nuevo sale con su tipo según el azar", () => {
   E.uploadModels(s, cfg, 1, () => 0.95);     // bueno
   E.uploadModels(s, cfg, 1, () => 0.995);    // éxito
   assert.deepEqual(s.models.map(m => m.kind), ["dud", "low", "good", "hit"]);
-  assert.ok(s.models[3].perDay > s.models[0].perDay * 50);
+  assert.ok(s.models[3].perDay > s.models[0].perDay * 30);
 });
 
 test("un modelo sin movimiento no deja puntos y un éxito sí", () => {
@@ -427,7 +427,7 @@ test("un modelo sin movimiento no deja puntos y un éxito sí", () => {
   for (let i = 0; i < 100; i++) E.nextDay(s, cfg, NB);
   assert.ok(s.models[0].downloads < 10);
   assert.equal(E.pointsForDownloads(cfg, s.models[0].downloads), 0);
-  assert.ok(s.models[1].downloads > 200);
+  assert.ok(s.models[1].downloads > 150);
   assert.ok(s.earned.downloads > 1000);
 });
 
@@ -476,14 +476,76 @@ test("100 modelos y 100 seguidores no garantizan una cifra enorme", () => {
   assert.ok(all < 40000, "puntos " + all);
 });
 
-test("la mitad de los modelos sigue bajo 10 descargas a los 4 meses con 100 seguidores", () => {
-  assert.ok(E.shareBelow(cfg, 100, 120, 10) >= 0.5);
-  assert.ok(E.shareBelow(cfg, 100, 120, 10) < E.shareBelow(cfg, 100, 30, 10) + 1e-9);
+test("sin seguidores, la mitad de los modelos sigue bajo 10 descargas a los 4 meses", () => {
+  assert.ok(E.shareBelow(cfg, 0, 120, 10) >= 0.5);
+  assert.ok(E.shareBelow(cfg, 0, 120, 10) <= E.shareBelow(cfg, 0, 30, 10) + 1e-9);
 });
 
-test("calibrado con una cuenta real: unos 100 modelos y 100 seguidores en 264 días rondan 45.000 puntos", () => {
-  const r = E.projectRoute(cfg, { current: 0, premium: "lottery", modelsPerDay: 100 / 264, followers: 100, marks: [264], maxDays: 264 });
-  assert.ok(r.snapshots[264] > 38000 && r.snapshots[264] < 62000, "total " + r.snapshots[264]);
+test("con 100 seguidores un modelo sin movimiento a duras penas llega a 10 descargas en 4 meses", () => {
+  const dud = cfg.modelTypes.find(t => t.id === "dud");
+  const d = dud.perDay * E.followerMult(cfg, 100) * 120;
+  assert.ok(d > 5 && d < 15, "descargas " + d);
+});
+
+// Simula una cuenta con "plan" = lista de [días, modelos por día] y devuelve lo que pasó en los últimos 30 días.
+function lastMonth(plan, followers, seed) {
+  const rng = mulberry32(seed);
+  const s = fresh();
+  s.followers = followers;
+  const total = plan.reduce((a, p) => a + p[0], 0);
+  const dl = st => st.models.reduce((a, m) => a + m.downloads, 0);
+  let day = 0, snap = null;
+  for (const [n, rate] of plan) {
+    s.settings.modelsPerDay = rate;
+    for (let i = 0; i < n; i++) {
+      if (day === total - 30) snap = { dl: dl(s), pd: s.earned.downloads, b: s.boosts, p: s.points };
+      E.advance(s, cfg, 1, rng);
+      E.spinAll(s, cfg, rng);
+      day++;
+    }
+  }
+  return { models: s.models.length, downloads: dl(s) - snap.dl, downloadPoints: s.earned.downloads - snap.pd, boosts: s.boosts - snap.b, points: s.points - snap.p };
+}
+
+function median(list) {
+  const a = list.slice().sort((x, y) => x - y);
+  return a[Math.floor(a.length / 2)];
+}
+
+test("calibrado con el mes real: 98 modelos y unos 300 seguidores dan descargas, boosts y puntos parecidos", () => {
+  const ref = cfg.reference;
+  assert.equal(ref.models, 98);
+  // dos historias posibles para llegar a 98 modelos en 264 días: ritmo parejo, o una subida reciente
+  const plans = [[[264, ref.models / 264]], [[200, 55 / 200], [64, 43 / 64]]];
+  const runs = [];
+  for (const plan of plans) for (let k = 0; k < 40; k++) runs.push(lastMonth(plan, ref.followers, 100 + k));
+  const med = key => median(runs.map(r => r[key]));
+  const within = (v, target, tol, label) => assert.ok(Math.abs(v - target) / target <= tol, label + ": " + Math.round(v) + " vs real " + target);
+  assert.equal(median(runs.map(r => r.models)), 98);
+  within(med("downloads"), ref.downloads, 0.2, "descargas");
+  within(med("downloadPoints"), ref.downloadPoints, 0.25, "puntos por descargas");
+  within(med("boosts"), ref.boosts, 0.25, "boosts");
+  within(med("points"), ref.totalPoints, 0.25, "puntos totales del mes");
+});
+
+test("las vistas acompañan a las descargas como en el mes real", () => {
+  const ref = cfg.reference;
+  assert.ok(Math.abs(cfg.viewsPerDownload - ref.views / ref.downloads) < 0.1);
+});
+
+test("outlook: lo que esperas en un mes sale de tus modelos, tus seguidores y la proporción de vistas", () => {
+  const s = fresh();
+  s.followers = 100;
+  const empty = E.outlook(s, cfg);
+  assert.equal(empty.downloads, 0);
+  assert.equal(empty.views, 0);
+  assert.equal(empty.boostPeople, 0);
+  E.uploadModels(s, cfg, 10, () => 0.2);       // 10 modelos "sin movimiento"
+  const o = E.outlook(s, cfg);
+  const perDay = cfg.modelTypes[0].perDay;
+  assert.ok(Math.abs(o.downloads - 10 * perDay * E.followerMult(cfg, 100) * 30) < 1e-9);
+  assert.ok(Math.abs(o.views - o.downloads * cfg.viewsPerDownload) < 1e-9);
+  assert.ok(o.boostPoints > 0);
 });
 
 /* ---------- boosts ---------- */
@@ -496,6 +558,7 @@ test("un boost vale 100 puntos y cada persona da de 1 a 4", () => {
 
 test("una persona que da 4 boosts suma 400 puntos y queda en el registro", () => {
   const s = fresh();
+  E.uploadModels(s, cfg, 1, () => 0);        // sin modelos nadie da boosts
   E.nextDay(s, cfg, seq([0.99, 0.5, 0.95]));       // 1 persona, 4 boosts
   assert.equal(s.boosts, 4);
   assert.equal(s.points, 400);
@@ -505,9 +568,42 @@ test("una persona que da 4 boosts suma 400 puntos y queda en el registro", () =>
 
 test("una persona que da 1 boost suma 100 puntos", () => {
   const s = fresh();
+  E.uploadModels(s, cfg, 1, () => 0);
   E.nextDay(s, cfg, seq([0.99, 0.5, 0.1]));
   assert.equal(s.boosts, 1);
   assert.equal(s.points, 100);
+});
+
+// Sube "n" modelos con la mezcla de tipos de la configuración (la mitad sin movimiento, etc.).
+function uploadMix(s, n) {
+  let i = 0;
+  E.uploadModels(s, cfg, n, () => (i++ + 0.5) / n);
+}
+
+test("98 modelos y unos 300 seguidores esperan cerca de los 36 boosts del mes real", () => {
+  const s = fresh();
+  s.followers = cfg.reference.followers;
+  uploadMix(s, cfg.reference.models);
+  const o = E.outlook(s, cfg);
+  assert.ok(o.boosts > 28 && o.boosts < 46, "boosts " + o.boosts);
+  assert.ok(Math.abs(o.boostPoints - o.boosts * cfg.boost.points) < 1e-9);
+  // y unas 1.700 descargas al mes
+  assert.ok(Math.abs(o.downloads - cfg.reference.downloads) / cfg.reference.downloads < 0.2, "descargas " + o.downloads);
+});
+
+test("los boosts siguen a las descargas: una cuenta pequeña recibe pocos", () => {
+  const small = fresh();
+  small.followers = 30;
+  uploadMix(small, 10);
+  const big = fresh();
+  big.followers = 300;
+  uploadMix(big, 98);
+  const a = E.outlook(small, cfg), b = E.outlook(big, cfg);
+  assert.ok(a.boosts < 4, "boosts de la cuenta pequeña " + a.boosts);
+  assert.ok(b.boosts > a.boosts * 8);
+  // por cada 100 descargas salen unos 2 boosts, como en el mes real
+  const real = cfg.reference.boosts / cfg.reference.downloads;
+  assert.ok(Math.abs(b.boosts / b.downloads - real) / real < 0.25);
 });
 
 test("más modelos y más seguidores atraen más boosts", () => {
@@ -518,12 +614,20 @@ test("más modelos y más seguidores atraen más boosts", () => {
   assert.ok(E.boostRate(many, cfg) > E.boostRate(base, cfg));
 });
 
+test("sin modelos nadie te da boosts", () => {
+  const s = fresh();
+  s.followers = 300;
+  assert.equal(E.boostRate(s, cfg), 0);
+  assert.equal(E.outlook(s, cfg).boosts, 0);
+});
+
 test("el promedio diario de boosts coincide con lo esperado", () => {
   const s = fresh();
+  E.uploadModels(s, cfg, 20, () => 0.2);
   const rng = mulberry32(7);
   const days = 20000;
+  const expected = E.boostRate(s, cfg) * E.expectedBoostsPerPerson(cfg) * cfg.boost.points;
   for (let i = 0; i < days; i++) E.nextDay(s, cfg, rng);
-  const expected = E.boostRate(fresh(), cfg) * E.expectedBoostsPerPerson(cfg) * cfg.boost.points;
   const got = s.earned.boost / days;
   assert.ok(Math.abs(got - expected) / expected < 0.1, "esperado " + expected + " real " + got);
 });

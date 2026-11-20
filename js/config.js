@@ -83,12 +83,14 @@
     // muchos casi no se descargan y unos pocos son los que de verdad dejan puntos.
     // Cada modelo que subes sale con uno de estos tipos al azar. "share" es qué parte de
     // tus modelos es de ese tipo y "perDay" cuántas descargas junta al día (sin seguidores).
+    // Calibrado con el mes real de "reference" (más abajo): ajusta estos números si tu cuenta
+    // se mueve distinto.
     modelTypes: [
-      { id: "dud",  label: "Sin movimiento", share: 0.50, perDay: 0.03 },
-      { id: "low",  label: "Lento",          share: 0.27, perDay: 0.10 },
-      { id: "mid",  label: "Normal",         share: 0.15, perDay: 0.30 },
-      { id: "good", label: "Bueno",          share: 0.07, perDay: 0.80 },
-      { id: "hit",  label: "Éxito",          share: 0.01, perDay: 2.50 }
+      { id: "dud",  label: "Sin movimiento", share: 0.50, perDay: 0.05 },
+      { id: "low",  label: "Lento",          share: 0.27, perDay: 0.15 },
+      { id: "mid",  label: "Normal",         share: 0.15, perDay: 0.38 },
+      { id: "good", label: "Bueno",          share: 0.07, perDay: 0.58 },
+      { id: "hit",  label: "Éxito",          share: 0.01, perDay: 1.90 }
     ],
     // Cada seguidor mutuo multiplica las descargas de todos tus modelos un poco más
     // (con 100 seguidores, las descargas se multiplican por 1,8).
@@ -96,21 +98,46 @@
 
     // Boost: cuando a alguien le gustan tus modelos puede darte boosts.
     // Cada boost vale 100 puntos. Cada persona da de 1 a 4 según cuántas impresoras
-    // tiene y cuánto imprime. "baseRate", "perModel" y "perFollower" son las
-    // personas que te dan boosts por día (sumando todo): más modelos y más
-    // seguidores significan más personas viendo tu perfil. Los modelos suman con la
-    // raíz cuadrada: los primeros pesan más que los últimos.
+    // tiene y cuánto imprime. Las personas que te dan boosts por día salen de una
+    // tasa fija muy pequeña ("baseRate") más una parte de tus descargas del día
+    // ("perDownload"): en el mes real de "reference" fueron unos 2 boosts por cada
+    // 100 descargas. Así, más modelos y más seguidores dan más boosts porque dan
+    // más descargas, y sin modelos no hay boosts.
     boost: {
       points: 100,
-      baseRate: 0.03,
-      perModel: 0.01,
-      perFollower: 0.0004,
+      baseRate: 0.01,
+      perDownload: 0.010,
       amounts: [
         { n: 1, weight: 35 },
         { n: 2, weight: 30 },
         { n: 3, weight: 20 },
         { n: 4, weight: 15 }
       ]
-    }
+    },
+
+    // Mes real de una cuenta, tomado del panel "My Profile" de Creality Cloud
+    // (últimos 30 días, del 21 de octubre al 18 de noviembre de 2026).
+    // Sirve para dos cosas: mostrar los números reales en la guía y calibrar el simulador.
+    // "followers" es un SUPUESTO (no sale del panel): las descargas y los boosts de arriba
+    // se ajustaron para que 98 modelos con unos 300 seguidores den este mes. Si tu cuenta
+    // tiene otro número de seguidores, cambia este valor y vuelve a correr las pruebas.
+    reference: {
+      models: 98,       // modelos públicos
+      followers: 300,   // supuesto
+      views: 7800,      // "Navegar"
+      downloads: 1700,
+      prints: 428,
+      likes: 568,
+      saves: 679,
+      slices: 48,
+      newFans: 128,
+      boosts: 36,
+      downloadPoints: 11486,  // "Puntos" de la pestaña Models
+      totalPoints: 17254,     // "Puntos" del Overview (todo: modelos, registro, lotería...)
+      prevTotalPoints: 20317  // el mes anterior (17.254 + 3.063)
+    },
+
+    // Cuántas vistas acompañan a cada descarga (7.800 vistas / 1.700 descargas).
+    viewsPerDownload: 4.6
   };
 })();

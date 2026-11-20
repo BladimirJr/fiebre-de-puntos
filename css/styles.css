@@ -351,6 +351,24 @@ code { font: 600 .92em ui-monospace, "SFMono-Regular", Menlo, Consolas, monospac
 
 .num { width: 100%; max-width: 14rem; min-height: 2.8rem; padding: .35rem .8rem; border: 2px solid rgba(16, 48, 42, .55); border-radius: 10px; background: #fff; color: var(--ink); font: 600 1.1rem var(--body); }
 
+/* ---------- Un mes real ---------- */
+.real { margin-top: 3.2rem; padding: 1.6rem; border: 1px solid rgba(217, 150, 26, .5); border-radius: 18px; background: var(--ivory); box-shadow: 0 1px 0 #fff inset, 0 14px 28px -16px rgba(0, 0, 0, .35); }
+.real h3 { margin: 0 0 .6rem; font: 400 2rem/1.1 var(--display); letter-spacing: .01em; }
+.real p { max-width: 66ch; margin: .8rem 0 0; }
+.real a { color: var(--ink); font-weight: 700; }
+.funnel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.2rem; margin: 1.6rem 0 1.2rem; padding: 0; list-style: none; }
+.funnel .fig .coin { --coin: 6.4rem; }
+.funnel .fig-unit { max-width: 10rem; }
+.funnel .fig:not(:last-child) { position: relative; }
+.funnel .fig:not(:last-child)::after { content: ""; position: absolute; top: 3.2rem; right: -.95rem; width: .7rem; height: .7rem; border-top: 3px solid var(--gold-3); border-right: 3px solid var(--gold-3); transform: translateY(-50%) rotate(45deg); }
+@media (max-width: 620px) {
+  .funnel { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 1.6rem; }
+  .funnel .fig { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .funnel .fig:nth-child(2)::after, .funnel .fig:nth-child(4)::after { display: none; }
+  .funnel .fig .coin { --coin: 5.6rem; }
+  .funnel .fig:not(:last-child)::after { top: 2.8rem; }
+}
+
 /* ---------- Ruta ---------- */
 .route { display: grid; grid-template-columns: minmax(0, 22rem) minmax(0, 1fr); gap: 2rem; margin-top: 2rem; align-items: start; }
 .route-form { display: grid; gap: 1rem; }

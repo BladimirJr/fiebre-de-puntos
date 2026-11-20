@@ -288,10 +288,21 @@
 
   /* ----- boosts ----- */
 
-  // Personas que te dan boosts por día, en promedio.
+  // Descargas que esperas por día con los modelos y seguidores que tienes ahora (promedio, sin azar).
+  function expectedDailyDownloads(s, cfg) {
+    var mult = followerMult(cfg, s.followers), perDay = 0;
+    for (var i = 0; i < s.models.length; i++) {
+      var m = s.models[i];
+      perDay += (m.perDay === undefined ? downloadsPerDay(cfg, 0) : m.perDay) * mult;
+    }
+    return perDay;
+  }
+
+  // Personas que te dan boosts por día, en promedio: una tasa pequeña fija más una parte de tus descargas.
   function boostRate(s, cfg) {
+    if (!s.models.length) return 0; // sin modelos no hay a quién darle boosts
     var b = cfg.boost;
-    return Math.min(20, b.baseRate + b.perModel * Math.sqrt(s.models.length) + b.perFollower * s.followers);
+    return Math.min(20, b.baseRate + b.perDownload * expectedDailyDownloads(s, cfg));
   }
 
   function expectedBoostsPerPerson(cfg) {
@@ -326,6 +337,21 @@
     s.earned.boost += pts;
     s.boosts += boosts;
     return { people: people, boosts: boosts, points: pts };
+  }
+
+  // Lo que esperas en un mes (30 días) con los modelos y seguidores que tienes ahora.
+  // Son promedios, sin azar: la vida real sube y baja mucho de un mes a otro.
+  function outlook(s, cfg) {
+    var downloads = expectedDailyDownloads(s, cfg) * 30;
+    var people = boostRate(s, cfg) * 30;
+    var boosts = people * expectedBoostsPerPerson(cfg);
+    return {
+      downloads: downloads,
+      views: downloads * (cfg.viewsPerDownload || 0),
+      boostPeople: people,
+      boosts: boosts,
+      boostPoints: boosts * cfg.boost.points
+    };
   }
 
   /* ----- paso del tiempo ----- */
@@ -519,6 +545,7 @@
     var spinEV = expectedPointsPerSpin(cfg);
     var boostEV = expectedBoostsPerPerson(cfg) * cfg.boost.points;
     var maxDays = o.maxDays || 3650;
+    var perModelDay = downloadsPerDay(cfg, fol);
     var marks = o.marks || [30, 90, 180, 365];
     var checkin = 0, lottery = 0, boost = 0, S = 0;
     var hit = null, parts = null, snaps = {};
@@ -526,7 +553,7 @@
       var slot = cfg.checkin[(t - 1) % cfg.checkin.length];
       if (slot.type === "points") checkin += slot.value * mult;
       else lottery += slot.value * tmult * spinEV;
-      var lambda = Math.min(20, cfg.boost.baseRate + cfg.boost.perModel * Math.sqrt(mpd * t) + cfg.boost.perFollower * fol);
+      var lambda = mpd > 0 ? Math.min(20, cfg.boost.baseRate + cfg.boost.perDownload * mpd * t * perModelDay) : 0;
       boost += lambda * boostEV;
       S += expectedModelPoints(cfg, fol, t);
       var downloads = mpd * S;
@@ -566,6 +593,7 @@
     expectedModelPoints: expectedModelPoints,
     shareBelow: shareBelow,
     boostRate: boostRate,
+    outlook: outlook,
     expectedBoostsPerPerson: expectedBoostsPerPerson,
     chances: chances,
     expectedPointsPerSpin: expectedPointsPerSpin,

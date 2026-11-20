@@ -331,10 +331,14 @@
       '<button type="button" class="chip" data-action="mpd" data-n="' + n + '" aria-pressed="' + (state.settings.modelsPerDay === n) + '">' + (n === 0 ? "Ninguno" : n + " por día") + "</button>"
     ).join("");
 
-    const perMonth = E.boostRate(state, cfg) * 30;
-    const pts = perMonth * E.expectedBoostsPerPerson(cfg) * cfg.boost.points;
-    $("#boost-info").innerHTML = "Boosts recibidos: <b>" + fmt(state.boosts) + "</b> (+" + fmt(state.earned.boost) + " puntos). Con tus modelos y seguidores esperas unas <b>" +
-      fmt1(perMonth) + "</b> personas al mes dando boosts, cerca de <b>" + fmt(pts) + "</b> puntos.";
+    const o = E.outlook(state, cfg);
+    $("#md-outlook").textContent = list.length
+      ? "Con tus modelos y tus seguidores esperas en un mes unas " + fmt(o.views) + " vistas y " + fmt(o.downloads) + " descargas. Es un promedio: cada mes sale distinto."
+      : "";
+    $("#boost-info").innerHTML = list.length
+      ? "Boosts recibidos: <b>" + fmt(state.boosts) + "</b> (+" + fmt(state.earned.boost) + " puntos). Cada mes esperas cerca de <b>" +
+        fmt(o.boosts) + "</b> " + plural(Math.round(o.boosts), "boost", "boosts") + ", unos <b>" + fmt(o.boostPoints) + "</b> puntos."
+      : "Boosts recibidos: <b>" + fmt(state.boosts) + "</b>. Sin modelos no hay boosts: sube uno para empezar.";
 
     const table = $("#mtable");
     table.hidden = list.length === 0;
@@ -450,9 +454,10 @@
       html += "<td><b>" + t.big + " " + t.unit + "</b><small>con registro, lotería y boosts</small></td></tr>";
     });
     $("#lib-table").innerHTML = html + "</tbody>";
-    const stuck = Math.round(E.shareBelow(cfg, fol, 180, cfg.downloadRate.blockSize) * 10);
-    $("#lib-note").textContent = "Con " + fol + " " + plural(fol, "seguidor", "seguidores") + ", a los 6 meses unos " + stuck + " de cada 10 modelos siguen sin llegar a " + cfg.downloadRate.blockSize +
-      " descargas, y los puntos salen sobre todo de los pocos que se mueven bien. Son promedios: en tu cuenta puede variar mucho. Y subir 2 o 5 modelos al día es mucho trabajo: la tabla muestra lo que pasaría, no que sea fácil.";
+    const low = cfg.downloadRate.blockSize * 3;
+    const stuck = Math.round(E.shareBelow(cfg, fol, 180, low) * 10);
+    $("#lib-note").textContent = "Con " + fol + " " + plural(fol, "seguidor", "seguidores") + ", a los 6 meses unos " + stuck + " de cada 10 modelos siguen por debajo de " + low +
+      " descargas y casi no dejan puntos: los puntos salen sobre todo de los pocos que se mueven bien. Son promedios y en tu cuenta puede variar mucho. Los seguidores se quedan fijos en el cálculo; en la vida real crecen poco a poco, así que al empezar vas más lento. Y subir 2 o 5 modelos al día es mucho trabajo: la tabla muestra lo que pasaría, no que sea fácil.";
   }
 
   function renderRoute() {
@@ -496,7 +501,22 @@
     set("followers", "×" + fmt1(E.followerMult(cfg, 100)));
     set("cap", cfg.downloadRate.cap);
     set("boost", cfg.boost.points);
-    set("dlmonth", Math.round(E.downloadsPerDay(cfg, 0) * 30));
+    const ref = cfg.reference;
+    set("ref-models", fmt(ref.models));
+    set("ref-views", fmt(ref.views));
+    set("ref-downloads", fmt(ref.downloads));
+    set("ref-prints", fmt(ref.prints));
+    set("ref-boosts", fmt(ref.boosts));
+    set("ref-boost-pts", fmt(ref.boosts * cfg.boost.points));
+    set("ref-likes", fmt(ref.likes));
+    set("ref-saves", fmt(ref.saves));
+    set("ref-fans", fmt(ref.newFans));
+    set("ref-dlpm", Math.round(ref.downloads / ref.models));
+    set("ref-dl-rate", Math.round(ref.downloads / ref.views * 100));
+    set("ref-print-rate", Math.round(ref.prints / ref.downloads * 100));
+    set("ref-model-pts", fmt(ref.downloadPoints));
+    set("ref-total", fmt(ref.totalPoints));
+    set("ref-prev", fmt(ref.prevTotalPoints));
     $$("[data-goal]").forEach((el) => { el.textContent = fmt(cfg.goal); });
     [25, 50, 75].forEach((p) => { $("#mk-" + p).textContent = fmt(cfg.goal * p / 100); });
   }

@@ -127,7 +127,7 @@
             <div class="source-body">
               <h3>Descargas de tus modelos</h3>
               <p>Cada modelo paga por bloques de 10 descargas. El primer bloque paga 10 puntos, el siguiente 20, y cada bloque paga 10 más hasta llegar a 120.</p>
-              <p>Creality muestra tus modelos nuevos igual que los demás, así que ser reciente no da ventaja. Y tampoco todos los modelos se mueven igual: muchos casi no se descargan y a duras penas llegan a 10, y unos pocos son los que dejan casi todos los puntos. En promedio un modelo junta unas <span data-fig="dlmonth">7</span> descargas al mes, pero ese promedio lo levantan los pocos que funcionan.</p>
+              <p>Creality muestra tus modelos nuevos igual que los demás, así que ser reciente no da ventaja. Y tampoco todos los modelos se mueven igual: muchos casi no se descargan y a duras penas llegan a 10, y unos pocos son los que dejan casi todos los puntos. En una cuenta real con <span data-fig="ref-models">98</span> modelos, cada uno juntó en promedio unas <span data-fig="ref-dlpm">17</span> descargas al mes, pero ese promedio lo levantan los pocos que funcionan. Los números completos de ese mes están <a href="#real">más abajo</a>.</p>
               <p class="do">Qué hacer: sube con constancia, mira cuáles se descargan y haz más de lo que funciona.</p>
             </div>
           </li>
@@ -136,7 +136,7 @@
             <div class="source-body">
               <h3>Boosts</h3>
               <p>Cuando a alguien le gustan tus modelos, de vez en cuando te da boosts. Cada boost vale 100 puntos y cada persona da entre 1 y 4, según cuántas impresoras tiene y cuánto imprime. Quien tiene varias impresoras y las usa mucho suele dar más.</p>
-              <p>Cuantos más modelos y más seguidores tengas, más personas pasan por tu perfil y más boosts recibes.</p>
+              <p>Cuantos más modelos y más seguidores tengas, más personas pasan por tu perfil y más boosts recibes. En el mes real de <a href="#real">más abajo</a> fueron <span data-fig="ref-boosts">36</span> boosts, unos <span data-fig="ref-boost-pts">3.600</span> puntos.</p>
               <p class="do">Qué hacer: sube modelos que se puedan imprimir y usar de verdad, y que quien los imprima te encuentre.</p>
             </div>
           </li>
@@ -227,6 +227,7 @@
             </div>
 
             <p class="hint" id="md-stuck"></p>
+            <p class="hint" id="md-outlook"></p>
 
             <div class="boost-box" id="boost-box">
               <svg class="ico" aria-hidden="true"><use href="#i-bolt"/></svg>
@@ -288,9 +289,22 @@
           </div>
         </div>
 
+        <div class="real" id="real">
+          <h3>Un mes real en una cuenta</h3>
+          <p>Estos son los números del panel de Creality Cloud de una cuenta con <span data-fig="ref-models">98</span> modelos públicos, en los últimos 30 días (del 21 de octubre al 18 de noviembre de 2026). Con ellos se ajustó el simulador.</p>
+          <ul class="funnel">
+            <li class="fig"><span class="coin silver"><b data-fig="ref-views">7.800</b></span><span class="fig-unit">vistas de sus modelos</span></li>
+            <li class="fig"><span class="coin copper"><b data-fig="ref-downloads">1.700</b></span><span class="fig-unit">descargas</span></li>
+            <li class="fig"><span class="coin dim"><b data-fig="ref-prints">428</b></span><span class="fig-unit">impresiones</span></li>
+            <li class="fig"><span class="coin jade"><b data-fig="ref-boosts">36</b></span><span class="fig-unit">boosts, unos <span data-fig="ref-boost-pts">3.600</span> puntos</span></li>
+          </ul>
+          <p>De cada 100 vistas, unas <span data-fig="ref-dl-rate">22</span> terminan en descarga, y de cada 100 descargas, unas <span data-fig="ref-print-rate">25</span> en una impresión. Además hubo <span data-fig="ref-likes">568</span> likes, <span data-fig="ref-saves">679</span> guardados y <span data-fig="ref-fans">128</span> seguidores nuevos.</p>
+          <p>El panel de modelos marcó <span data-fig="ref-model-pts">11.486</span> puntos y el total del mes fue de <span data-fig="ref-total">17.254</span>. El mes anterior habían sido <span data-fig="ref-prev">20.317</span>: un mes bueno puede ir seguido de uno más flojo, así que ninguna cifra es una promesa.</p>
+        </div>
+
         <div class="lib">
           <h3>Si subes modelos todos los días</h3>
-          <p>Un cálculo con descargas realistas. No todos los modelos se mueven igual: la mitad casi no se descarga, unos cuantos van bien y uno de cada cien despega. En promedio salen unas <span data-fig="dlmonth">7</span> descargas al mes por modelo, y no importa si el modelo es nuevo o viejo. Cada seguidor mutuo mueve un poco más a todos. Las cifras de cada celda son solo los puntos por descargas, sin contar el registro, la lotería ni los boosts.</p>
+          <p>Un cálculo con descargas realistas, ajustado al mes real de arriba. No todos los modelos se mueven igual: la mitad casi no se descarga, unos cuantos van bien y uno de cada cien despega, sin importar si el modelo es nuevo o viejo. Cada seguidor mutuo mueve un poco más a todos, y con pocos seguidores salen bastantes menos descargas que en esa cuenta. Las cifras de cada celda son solo los puntos por descargas, sin contar el registro, la lotería ni los boosts.</p>
           <div class="lib-ctrl">
             <label for="lib-followers" class="ctrl-label">Seguidores mutuos</label>
             <input class="num" id="lib-followers" type="number" min="0" max="2000" step="10" value="60" inputmode="numeric">
@@ -430,11 +444,11 @@
           </details>
           <details>
             <summary>¿Todos mis modelos se descargan igual?</summary>
-            <p>No. Es normal que muchos diseños casi no se muevan y a duras penas lleguen a 10 descargas, mientras unos pocos despegan. Como cada bloque de 10 descargas paga más que el anterior, esos pocos son los que dejan la mayoría de los puntos. Por eso tener 100 modelos y 100 seguidores no garantiza una cifra enorme: en el simulador, cada modelo nuevo sale con su propia suerte.</p>
+            <p>No. Es normal que muchos diseños casi no se muevan y a duras penas lleguen a 10 descargas, mientras unos pocos despegan. Como cada bloque de 10 descargas paga más que el anterior, esos pocos son los que dejan la mayoría de los puntos. Por eso tener 100 modelos no garantiza una cifra enorme: en el mes real de <a href="#real">arriba</a>, <span data-fig="ref-models">98</span> modelos dejaron <span data-fig="ref-total">17.254</span> puntos en total, y el mes anterior habían sido <span data-fig="ref-prev">20.317</span>. En el simulador, cada modelo nuevo sale con su propia suerte.</p>
           </details>
           <details>
             <summary>¿Qué es un boost?</summary>
-            <p>Es un gesto de alguien a quien le gustan tus modelos. Cada boost vale 100 puntos y cada persona da entre 1 y 4, según cuántas impresoras tiene y cuánto imprime. Llegan de vez en cuando, y más cuantos más modelos y seguidores tengas.</p>
+            <p>Es un gesto de alguien a quien le gustan tus modelos. Cada boost vale 100 puntos y cada persona da entre 1 y 4, según cuántas impresoras tiene y cuánto imprime. Llegan de vez en cuando, y más cuantos más modelos y seguidores tengas. En el mes real fueron <span data-fig="ref-boosts">36</span>.</p>
           </details>
           <details>
             <summary>¿Por qué seguir a otros creadores?</summary>

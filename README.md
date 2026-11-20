@@ -15,7 +15,7 @@ El progreso se ve como un termómetro de mercurio dorado: 0 puntos son 36 °C y 
   - **Lotería** en cuadrícula de 3×3 con los premios de Creality: 1 GB de nube, 100, 200, 4.500, 67.400 y 197.067 puntos, Gracias y mes de Premium. Lo que más sale es 100, 200 y 1 GB de nube; el Premium a veces, y los premios grandes casi nunca.
   - **Premium**: los meses que te toquen se acumulan. Mientras haya Premium, la tabla del registro diario vale ×2 (los puntos y también los boletos: 1 pasa a 2, 2 pasan a 4). Los premios de la ruleta **no** se duplican.
   - **Modelos y descargas**: eliges cuántos modelos subes por día (0, 1, 2 o 5). Creality muestra los modelos nuevos igual que los viejos, así que no hay ventaja por ser reciente. Y no todos los modelos se mueven igual: cada uno sale con su propia suerte (sin movimiento, lento, normal, bueno o éxito). Muchos no llegan ni a 10 descargas y unos pocos dejan casi todos los puntos.
-  - **Boosts**: de vez en cuando alguien te da boosts. Cada boost vale 100 puntos y cada persona da de 1 a 4. Llegan más cuantos más modelos y seguidores tengas.
+  - **Boosts**: de vez en cuando alguien te da boosts. Cada boost vale 100 puntos y cada persona da de 1 a 4. Llegan más cuantos más descargas tengas (unos 2 por cada 100 en el mes real), y sin modelos no hay boosts.
   - Saltos de 7, 30, 90 días y 6 meses registrándote cada día.
 - **Descargas**: cada bloque de 10 descargas paga 10 puntos más que el anterior, hasta 120. Incluye una tabla de lo que dejan 1, 2 o 5 modelos por día.
 - **Ruta**: calculadora de cuánto tardas según tus hábitos (puntos de hoy, Premium, modelos por día y seguidores).
@@ -24,9 +24,24 @@ El progreso se ve como un termómetro de mercurio dorado: 0 puntos son 36 °C y 
 
 Todo funciona en el navegador, sin servidor y sin pedir datos de tu cuenta de Creality. El progreso se guarda con `localStorage`.
 
-## Cómo se calibraron las descargas
+## Cómo se calibró
 
-Las descargas salen de una mezcla de tipos de modelo (`modelTypes` en `js/config.js`): la mitad casi no se mueve, un cuarto va lento, y apenas uno de cada cien despega. Se ajustó para que una cuenta como la del autor (unos 100 modelos, 100 seguidores y 264 días de racha) dé alrededor de 45.000 puntos, y no cifras enormes. Con esa mezcla, 1 modelo al día tarda cerca de 6 meses en llegar a la meta, 2 al día unos 5 y 5 al día unos 3,7. Son estimaciones: tu cuenta puede salir distinta.
+El simulador se ajustó con el panel de una cuenta real de Creality Cloud: **98 modelos públicos, últimos 30 días** (21 de octubre al 18 de noviembre de 2026). Esos números están en `reference` dentro de `js/config.js` y se muestran en la guía como "Un mes real en una cuenta":
+
+| | Mes real | Simulador (mediana) |
+|---|---|---|
+| Descargas | 1.700 | 1.600 a 1.700 |
+| Puntos por descargas | 11.486 | 11.500 a 14.000 |
+| Boosts | 36 | 35 a 36 |
+| Puntos totales del mes | 17.254 | 17.400 a 20.800 |
+
+- **Descargas**: salen de una mezcla de tipos de modelo (`modelTypes`): la mitad casi no se mueve, un cuarto va lento y apenas uno de cada cien despega. Los seguidores multiplican las descargas de todos los modelos (`followerFactor`).
+- **Boosts**: dependen de las descargas (`boost.perDownload`). En el mes real fueron unos 2 boosts por cada 100 descargas. Sin modelos no hay boosts.
+- **Vistas**: por cada descarga salen unas 4,6 vistas (`viewsPerDownload`).
+- **El supuesto que más pesa**: el panel no dice cuántos seguidores tiene la cuenta, así que se supuso que son unos 300 (`reference.followers`). Si el número real es otro, cámbialo, ajusta `modelTypes` hasta que las pruebas vuelvan a pasar y listo.
+- **Límite del cálculo**: los seguidores se quedan fijos mientras pasan los días. En la vida real crecen poco a poco, así que el simulador va más rápido al principio y no reproduce una historia completa de 264 días: esa cuenta juntó la mayor parte de sus puntos en los últimos dos meses.
+
+Con esa mezcla, y con 60 seguidores mutuos, 1 modelo al día tarda cerca de 6 meses en llegar a la meta, 2 al día unos 5 y 5 al día unos 3,4. Son estimaciones: tu cuenta puede salir distinta.
 
 ## Verla en tu computador
 
@@ -65,9 +80,9 @@ El archivo `.nojekyll` evita que GitHub procese el sitio con Jekyll.
 
 ## Ajustar los números
 
-Todas las reglas están en [`js/config.js`](js/config.js): recompensas del registro, la tienda y la meta (`PRINTER_PRICE`, 40.900), la check-in Card, premios y probabilidades de la lotería, tramos de descargas, tipos de modelo y boosts. Cambia un valor y el simulador, las tablas y las calculadoras se actualizan solos. Si prefieres una meta de 40.000, cambia solo `PRINTER_PRICE`.
+Todas las reglas están en [`js/config.js`](js/config.js): recompensas del registro, la tienda y la meta (`PRINTER_PRICE`, 40.900), la check-in Card, premios y probabilidades de la lotería, tramos de descargas, tipos de modelo, boosts y el mes real de referencia. Cambia un valor y el simulador, las tablas y las calculadoras se actualizan solos. Si prefieres una meta de 40.000, cambia solo `PRINTER_PRICE`.
 
-Las probabilidades de la lotería, los tipos de modelo y los boosts son valores de ejemplo, no oficiales.
+Las probabilidades de la lotería y los tipos de modelo son valores de ejemplo, no oficiales; las descargas y los boosts están ajustados al mes real de `reference`.
 
 ## Pruebas
 
