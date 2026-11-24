@@ -131,13 +131,18 @@
     },
 
     // Temporada: los modelos que siguen la temática del momento (ahora, Navidad) juntan
-    // bastantes más descargas mientras dura la temporada. "multiplier" es cuántas veces
-    // más que un modelo normal (la cuenta del autor ve entre 3 y 5 veces, se usa 4) y
-    // "days" cuántos días de simulación dura (35 es una suposición: más o menos hasta
-    // Navidad). Pasada la temporada, el modelo vuelve a su ritmo normal. El mes real
-    // de "reference" NO incluía modelos de Navidad: mide el ritmo sin temporada.
+    // bastantes más descargas mientras dura la temporada. "multiplier" es cuántas veces más
+    // que un modelo normal y "days" cuántos días de simulación dura (35 es una suposición:
+    // más o menos hasta Navidad). Además, en temporada no hay modelos que no se muevan:
+    // ningún modelo de temporada baja de "minPerDay" descargas al día (sin contar seguidores).
+    // Calibrado con 8 modelos de Navidad de la cuenta del autor (4 subidos ayer y 4 hoy, 24 de
+    // noviembre de 2026): 22 descargas en unos 4 a 6 días de vida sumados, ninguno en cero, o sea
+    // unas 3 a 5 descargas al día por modelo, cerca de 6 veces el ritmo de sus modelos normales.
+    // Son pocos modelos, así que es una estimación: con 5 y 0,5 el promedio de temporada queda en
+    // unas 5,7 veces el de un modelo normal. Pasada la temporada, el modelo vuelve a su ritmo de
+    // siempre. El mes real de "reference" NO incluía modelos de Navidad: mide el ritmo sin temporada.
     // Para apagarla pon multiplier: 1, o cambia "label" y los números para otra fecha.
-    season: { label: "Navidad", multiplier: 4, days: 35 },
+    season: { label: "Navidad", multiplier: 5, days: 35, minPerDay: 0.5 },
 
     // Mes real de una cuenta, tomado del panel "My Profile" de Creality Cloud
     // (últimos 30 días, del 21 de octubre al 18 de noviembre de 2026, sin modelos de Navidad).

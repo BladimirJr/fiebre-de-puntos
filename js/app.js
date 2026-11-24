@@ -345,7 +345,7 @@
     $("#season-hint").textContent = over
       ? "La temporada de " + name + " ya pasó en el simulador: los modelos nuevos rinden a su ritmo normal."
       : "Un modelo de " + name + " junta ×" + cfg.season.multiplier + " descargas hasta el día " + cfg.season.days + " del simulador (te quedan " + (cfg.season.days - state.day) +
-        " " + plural(cfg.season.days - state.day, "día", "días") + "). Después vuelve a su ritmo normal, y los modelos viejos no se apagan.";
+        " " + plural(cfg.season.days - state.day, "día", "días") + ") y en temporada ninguno se queda sin moverse. Después vuelve a su ritmo normal, y los modelos viejos no se apagan.";
   }
   function renderCommunity() {
     const list = state.models;
@@ -492,7 +492,7 @@
     const stuck = Math.round(E.shareBelow(cfg, fol, 180, low) * 10);
     $("#lib-note").textContent = "Con " + fol + " " + plural(fol, "seguidor", "seguidores") + ", a los 6 meses unos " + stuck + " de cada 10 modelos siguen por debajo de " + low +
       " descargas y casi no dejan puntos: los puntos salen sobre todo de los pocos que se mueven bien. Son promedios y en tu cuenta puede variar mucho. Los seguidores se quedan fijos en el cálculo; en la vida real crecen poco a poco, así que al empezar vas más lento. Y subir 2 o 5 modelos al día es mucho trabajo: la tabla muestra lo que pasaría, no que sea fácil." +
-      (share > 0 ? " La ventaja de " + seasonName() + " (×" + cfg.season.multiplier + ") dura solo los primeros " + cfg.season.days + " días; después esos modelos vuelven a su ritmo normal." : "");
+      (share > 0 ? " La ventaja de " + seasonName() + " (×" + cfg.season.multiplier + ", y ningún modelo de temporada se queda sin moverse) dura solo los primeros " + cfg.season.days + " días; después esos modelos vuelven a su ritmo normal." : "");
   }
 
   function renderRoute() {
@@ -582,6 +582,9 @@
       set("season-label", cfg.season.label);
       set("season-mult", cfg.season.multiplier);
       set("season-days", cfg.season.days);
+      set("season-min", fmt((cfg.season.minPerDay || 0) * 30));
+      const mr = E.meanRates(cfg);
+      set("season-ratio", fmt1(mr.season / mr.base));
     }
     const ref = cfg.reference;
     set("ref-models", fmt(ref.models));

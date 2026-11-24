@@ -561,9 +561,9 @@ test("pointsForDownloads con fórmula da lo mismo que sumar bloque por bloque", 
   }
 });
 
-test("la temporada está configurada: Navidad, ×4 y unos 35 días", () => {
+test("la temporada está configurada: Navidad, ×5 y unos 35 días", () => {
   assert.equal(cfg.season.label, "Navidad");
-  assert.equal(cfg.season.multiplier, 4);
+  assert.equal(cfg.season.multiplier, 5);
   assert.ok(cfg.season.days >= 20 && cfg.season.days <= 60);
 });
 
@@ -577,7 +577,7 @@ function liveModel(seasonal, days, startDay) {
   return s.models[0];
 }
 
-test("un modelo de temporada junta ×4 descargas mientras dura la temporada", () => {
+test("un modelo de temporada junta ×5 descargas mientras dura la temporada", () => {
   const normal = liveModel(false, cfg.season.days);
   const seasonal = liveModel(true, cfg.season.days);
   assert.equal(seasonal.seasonal, true);
@@ -1065,4 +1065,89 @@ test("los perfiles suman unos puntos a un mes real, sin cambiar mucho la cifra",
   const off = Object.assign({}, cfg, { profile: { blockSize: 10, points: 10, perDownload: 0 } });
   const a = E.libraryPoints(off, 1, 300, 90, 0).points, b = E.libraryPoints(cfg, 1, 300, 90, 0).points;
   assert.ok(b > a && b < a * 1.2, a + " vs " + b);
+});
+
+/* ---------- en temporada no hay modelos que no se muevan ---------- */
+
+test("el piso de temporada está configurado y el promedio de temporada es unas 6 veces el normal", () => {
+  assert.ok(cfg.season.minPerDay > 0);
+  const r = E.meanRates(cfg);
+  const ratio = r.season / r.base;
+  assert.ok(ratio >= 5 && ratio <= 7, "promedio ×" + ratio);
+  assert.ok(ratio > cfg.season.multiplier, "el piso sube el promedio sobre el ×" + cfg.season.multiplier);
+});
+
+test("coincide con los 8 modelos de Navidad de la captura: unas 3 a 5 descargas al día por modelo y ninguno en cero", () => {
+  // con los ~270 seguidores que salen del mes real (0,58 descargas al día por modelo normal)
+  const f = (cfg.reference.downloads / cfg.reference.models / 30) / E.meanRates(cfg).base;
+  const fol = (f - 1) / cfg.followerFactor;
+  assert.ok(fol > 200 && fol < 350, "seguidores " + fol);
+  const mean = E.meanRates(cfg).season * f;
+  assert.ok(mean >= 2.8 && mean <= 5, "promedio " + mean + " al día");
+  // el modelo más flojo de temporada junta más de una descarga al día, como los 8 de la captura
+  assert.ok(E.seasonRate(cfg, cfg.modelTypes[0].perDay) * f > 1.2);
+});
+
+test("seasonRate: ×multiplier, pero nadie baja del piso", () => {
+  const M = cfg.season.multiplier, floor = cfg.season.minPerDay;
+  assert.equal(E.seasonRate(cfg, 0.05), floor);               // un modelo sin movimiento sube al piso
+  assert.equal(E.seasonRate(cfg, 1.9), 1.9 * M);              // un éxito solo se multiplica
+  const off = Object.assign({}, cfg, { season: { label: "x", multiplier: 1, days: 35, minPerDay: 1 } });
+  assert.equal(E.seasonRate(off, 0.05), 0.05);                // sin temporada no hay piso
+});
+
+// Sube un modelo del tipo "sin movimiento" (el primero de la lista), normal o de temporada.
+function liveDud(seasonal, days, startDay) {
+  const s = fresh();
+  s.day = startDay || 0;
+  s.settings.seasonal = seasonal;
+  E.uploadModels(s, cfg, 1, () => 0);
+  for (let i = 0; i < days; i++) E.nextDay(s, cfg, NB);
+  return s.models[0];
+}
+
+test("en temporada hasta el modelo que no se movía junta descargas", () => {
+  const S = cfg.season.days;
+  const normal = liveDud(false, S), seasonal = liveDud(true, S);
+  assert.equal(normal.kind, "dud");
+  assert.ok(normal.downloads <= 2, "normal " + normal.downloads);
+  assert.ok(Math.abs(seasonal.downloads - cfg.season.minPerDay * S) <= 1, "de temporada " + seasonal.downloads);
+});
+
+test("pasada la temporada el modelo que no se movía vuelve a su ritmo de siempre", () => {
+  const S = cfg.season.days;
+  const at = liveDud(true, S).downloads;
+  const later = liveDud(true, S + 100).downloads;
+  const normalGain = liveDud(false, S + 100).downloads - liveDud(false, S).downloads;
+  assert.ok(Math.abs((later - at) - normalGain) <= 1, "ganó " + (later - at) + " y uno normal " + normalGain);
+});
+
+test("outlook y boosts cuentan el piso de temporada de un modelo sin movimiento", () => {
+  const s = fresh();
+  s.followers = 0;
+  s.settings.seasonal = true;
+  E.uploadModels(s, cfg, 1, () => 0);
+  const S = cfg.season.days, floor = cfg.season.minPerDay, dud = cfg.modelTypes[0].perDay;
+  assert.ok(Math.abs(E.outlook(s, cfg).downloads - floor * 30) < 1e-9);
+  s.day = S - 10;
+  assert.ok(Math.abs(E.outlook(s, cfg).downloads - (floor * 10 + dud * 20)) < 1e-9);
+  const plain = fresh();
+  E.uploadModels(plain, cfg, 1, () => 0);
+  assert.ok(E.boostRate(s, cfg, 1) > E.boostRate(plain, cfg, 1));
+});
+
+test("la biblioteca de temporada con piso coincide con simular varias veces", () => {
+  const days = 60, runs = 40;
+  let total = 0, pts = 0;
+  for (let k = 0; k < runs; k++) {
+    const rng = mulberry32(1700 + k);
+    const s = fresh();
+    s.followers = 30; s.settings.modelsPerDay = 2; s.settings.seasonal = true;
+    for (let i = 0; i < days; i++) E.nextDay(s, cfg, rng);
+    total += s.models.reduce((a, m) => a + m.downloads, 0);
+    pts += s.earned.downloads;
+  }
+  const l = E.libraryPoints(cfg, 2, 30, days, 1);
+  assert.ok(Math.abs(total / runs - l.downloads) / l.downloads < 0.1, "descargas " + l.downloads + " vs " + total / runs);
+  assert.ok(Math.abs(pts / runs - l.points) / l.points < 0.2, "puntos " + l.points + " vs " + pts / runs);
 });

@@ -15,7 +15,7 @@ El progreso se ve como un termómetro de mercurio dorado: 0 puntos son 36 °C y 
   - **Lotería** en cuadrícula de 3×3 con los premios de Creality: 1 GB de nube, 100, 200, 4.500, 67.400 y 197.067 puntos, Gracias y mes de Premium. Lo que más sale es 100, 200 y 1 GB de nube; el Premium a veces, y los premios grandes casi nunca.
   - **Premium**: los meses que te toquen se acumulan. Mientras haya Premium, la tabla del registro diario vale ×2 (los puntos y también los boletos: 1 pasa a 2, 2 pasan a 4). Los premios de la ruleta **no** se duplican.
   - **Modelos y descargas**: eliges cuántos modelos subes por día (0, 1, 2 o 5). Creality muestra los modelos nuevos igual que los viejos, así que no hay ventaja por ser reciente. Y no todos los modelos se mueven igual: cada uno sale con su propia suerte (sin movimiento, lento, normal, bueno o éxito). Muchos no llegan ni a 10 descargas y unos pocos dejan casi todos los puntos.
-  - **Temporada**: los modelos que siguen la temática del momento (ahora, Navidad) juntan ×4 descargas durante los primeros 35 días y después vuelven a su ritmo normal. Se elige al subir modelos en el simulador, y la ruta y la tabla de descargas tienen su propio selector (normales, la mitad o todos de temporada). Los modelos viejos no se apagan con el tiempo.
+  - **Temporada**: los modelos que siguen la temática del momento (ahora, Navidad) juntan ×5 descargas durante los primeros 35 días y después vuelven a su ritmo normal. Se elige al subir modelos en el simulador, y la ruta y la tabla de descargas tienen su propio selector (normales, la mitad o todos de temporada). Los modelos viejos no se apagan con el tiempo.
   - **Boosts**: de vez en cuando alguien te da boosts. Cada boost vale 100 puntos y cada persona da de 1 a 4. Llegan más cuantos más descargas tengas (unos 2 por cada 100 en el mes real), y sin modelos no hay boosts.
   - Saltos de 7, 30, 90 días y 6 meses registrándote cada día.
 - **Descargas**: cada bloque de 10 descargas paga 10 puntos más que el anterior, hasta 120. Los perfiles de impresión pagan aparte: 10 puntos fijos por cada 10 descargas del perfil. Incluye una tabla de lo que dejan 1, 2 o 5 modelos por día.
@@ -47,10 +47,11 @@ Con esa mezcla, y con 60 seguidores mutuos, 1 modelo al día tarda cerca de 6 me
 
 ## Temporada (Navidad)
 
-El mes real de arriba no incluía modelos de Navidad, así que mide el ritmo **sin** temporada. Según la cuenta del autor, un modelo de temporada junta de 3 a 5 veces más descargas que uno de otro tema, y el simulador usa ×4 (`season.multiplier` en `js/config.js`).
+El mes real de arriba no incluía modelos de Navidad, así que mide el ritmo **sin** temporada. Según la cuenta del autor, un modelo de temporada junta cerca de 6 veces más descargas que uno de otro tema (8 modelos de Navidad subidos en dos días: 22 descargas, ninguno en cero), y el simulador usa ×5 más un piso (`season.multiplier` y `season.minPerDay` en `js/config.js`).
 
 - **Cuánto dura**: `season.days` (35, más o menos hasta Navidad). Es una suposición. Pasada la temporada el modelo vuelve a su ritmo normal, no se apaga.
 - **Qué cambia**: las descargas del modelo y, como los boosts siguen a las descargas, también sus boosts.
+- **En Navidad no hay modelos que no se muevan**: además del ×5, ningún modelo de temporada baja de `season.minPerDay` descargas al día (0,5, sin contar seguidores; es un supuesto). Eso deja el promedio de temporada en unas 5,7 veces el de un modelo normal, cerca de lo que se vio en esos 8 modelos. Pasada la temporada, el modelo vuelve a su tipo de siempre.
 - **Para otra fecha**: cambia `season.label`, `multiplier` y `days` (por ejemplo para San Valentín o Halloween). Con `multiplier: 1` desaparece todo lo de temporada.
 - Con pocos modelos al principio, 35 días de temporada acortan la ruta unos 10 a 20 días; el efecto grande se ve en el primer mes.
 
