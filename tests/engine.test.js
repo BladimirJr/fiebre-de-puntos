@@ -869,3 +869,200 @@ test("el registro de actividad guarda como máximo 40 entradas", () => {
   assert.equal(s.log.length, 40);
   assert.equal(s.log[0].text, "x99");
 });
+
+/* ---------- probabilidad de Premium ---------- */
+
+test("la suerte del Premium está en la configuración y empieza en 1", () => {
+  assert.ok(cfg.premiumLuck.perModelPerDay > 0 && cfg.premiumLuck.max > 0 && cfg.premiumLuck.streakDays >= 1);
+  assert.equal(E.premiumLuck(cfg, 0), 1);
+});
+
+test("subir modelos y mantener la racha sube la suerte hasta un tope; sin racha no hay ventaja", () => {
+  const l1 = E.premiumLuck(cfg, 1), l2 = E.premiumLuck(cfg, 2), l50 = E.premiumLuck(cfg, 50);
+  assert.ok(l1 > 1 && l2 > l1);
+  assert.ok(Math.abs(l50 - (1 + cfg.premiumLuck.max)) < 1e-9);
+  assert.equal(E.premiumLuck(cfg, 5, cfg.premiumLuck.streakDays - 1), 1);
+  assert.ok(E.premiumLuck(cfg, 5, cfg.premiumLuck.streakDays) > 1);
+  const off = Object.assign({}, cfg, { premiumLuck: { perModelPerDay: 0, max: 0.6, streakDays: 7 } });
+  assert.equal(E.premiumLuck(off, 5), 1);
+});
+
+test("con suerte las probabilidades siguen sumando 1 y solo gana el Premium", () => {
+  const base = E.chances(cfg), lucky = E.chances(cfg, 1.6);
+  assert.ok(Math.abs(lucky.reduce((a, x) => a + x, 0) - 1) < 1e-9);
+  cfg.raffle.forEach((p, i) => {
+    if (p.kind === "premium") assert.ok(lucky[i] > base[i]);
+    else assert.ok(lucky[i] < base[i]);
+  });
+});
+
+test("probabilidad de Premium en un mes: 12 boletos y 1 - (1 - p)^12", () => {
+  const c = E.premiumChance(cfg, {});
+  assert.equal(c.spins, 12);
+  const p = 2 / cfg.raffle.reduce((a, x) => a + x.weight, 0);
+  assert.ok(Math.abs(c.perSpin - p) < 1e-12);
+  assert.ok(Math.abs(c.chance - (1 - Math.pow(1 - p, 12))) < 1e-12);
+  assert.ok(c.chance > 0.15 && c.chance < 0.35, "chance " + c.chance);
+});
+
+test("más modelos, más días, boletos guardados o Premium puesto suben la probabilidad", () => {
+  const base = E.premiumChance(cfg, {}).chance;
+  assert.ok(E.premiumChance(cfg, { modelsPerDay: 1 }).chance > base);
+  assert.ok(E.premiumChance(cfg, { modelsPerDay: 4 }).chance > E.premiumChance(cfg, { modelsPerDay: 1 }).chance);
+  assert.ok(E.premiumChance(cfg, { days: 90 }).chance > base);
+  assert.ok(E.premiumChance(cfg, { tickets: 5 }).chance > base);
+  assert.equal(E.premiumChance(cfg, { premium: true }).spins, 24);
+  assert.ok(E.premiumChance(cfg, { premium: true }).chance > base);
+  assert.equal(E.premiumChance(cfg, { modelsPerDay: 4, streak: 2 }).chance, base); // sin racha, sin ventaja
+});
+
+// Un mes de registro todos los días y giros; devuelve en cuántos de "n" intentos tocó Premium al menos una vez.
+function premiumFrequency(n, seed, modelsPerDay) {
+  let hits = 0;
+  for (let k = 0; k < n; k++) {
+    const rng = mulberry32(seed + k);
+    const s = fresh();
+    s.settings.modelsPerDay = modelsPerDay;
+    for (let d = 0; d < 30; d++) { E.advance(s, cfg, 1, rng); E.spinAll(s, cfg, rng); }
+    if (s.premiumMonthsWon > 0) hits++;
+  }
+  return hits / n;
+}
+
+test("la probabilidad de Premium coincide con simular un mes con racha completa", () => {
+  const sim = premiumFrequency(3000, 21000, 0);
+  const ev = E.premiumChance(cfg, {}).chance;
+  assert.ok(Math.abs(sim - ev) < 0.035, "esperado " + ev + " simulado " + sim);
+});
+
+test("con 4 modelos al día y racha el Premium toca más seguido, como dice la probabilidad", () => {
+  const sim = premiumFrequency(3000, 31000, 4);
+  const ev = E.premiumChance(cfg, { modelsPerDay: 4 }).chance;
+  assert.ok(sim > E.premiumChance(cfg, {}).chance, "simulado " + sim);
+  assert.ok(Math.abs(sim - ev) < 0.05, "esperado " + ev + " simulado " + sim);
+});
+
+test("el giro usa la suerte: con racha y modelos nuevos sale más Premium que sin ellos", () => {
+  function premiumRate(withLuck) {
+    const rng = mulberry32(55);
+    const s = fresh();
+    if (withLuck) {
+      s.streak = cfg.premiumLuck.streakDays;
+      E.uploadModels(s, cfg, 7, rng); // 7 modelos de menos de 7 días = 1 por día
+    }
+    let n = 0, prem = 0;
+    for (let i = 0; i < 40000; i++) {
+      s.tickets = 1;
+      const r = E.spin(s, cfg, rng);
+      n++; if (r.prize.kind === "premium") prem++;
+    }
+    return prem / n;
+  }
+  const plain = premiumRate(false), lucky = premiumRate(true);
+  assert.ok(Math.abs(plain - E.premiumPerSpin(cfg, 1)) < 0.003, "sin suerte " + plain);
+  assert.ok(Math.abs(lucky - E.premiumPerSpin(cfg, E.premiumLuck(cfg, 1))) < 0.003, "con suerte " + lucky);
+  assert.ok(lucky > plain);
+});
+
+test("los modelos nuevos de la semana se cuentan como modelos por día", () => {
+  const s = fresh();
+  assert.equal(E.recentUploadRate(s), 0);
+  E.uploadModels(s, cfg, 14);
+  assert.equal(E.recentUploadRate(s), 2);
+  for (let i = 0; i < 7; i++) E.nextDay(s, cfg, NB);
+  assert.equal(E.recentUploadRate(s), 0); // ya pasaron 7 días
+});
+
+test("el Premium esperado de la ruta sube con los modelos por día", () => {
+  assert.equal(E.premiumShare(cfg, "lottery", 0), E.premiumShare(cfg, "lottery"));
+  assert.ok(E.premiumShare(cfg, "lottery", 5) > E.premiumShare(cfg, "lottery", 0));
+  assert.equal(E.premiumShare(cfg, true, 5), 1);
+  assert.equal(E.premiumShare(cfg, false, 5), 0);
+});
+
+/* ---------- modelos que ya tienes subidos ---------- */
+
+test("ruta con modelos ya subidos: suma sus descargas y sus boosts sin subir nada", () => {
+  const o = { current: 0, premium: false, modelsPerDay: 0, followers: 150, marks: [30] };
+  const none = E.projectRoute(cfg, o);
+  const own = E.projectRoute(cfg, Object.assign({ ownedModels: 98, ownedAge: 120 }, o));
+  const dl = 98 * (E.expectedModelPoints(cfg, 150, 150) - E.expectedModelPoints(cfg, 150, 120));
+  const lambda = Math.min(20, cfg.boost.baseRate + cfg.boost.perDownload * 98 * E.downloadsPerDay(cfg, 150));
+  const boosts = 30 * lambda * E.expectedBoostsPerPerson(cfg) * cfg.boost.points;
+  assert.ok(Math.abs((own.snapshots[30] - none.snapshots[30]) - (dl + boosts)) < 0.01);
+  assert.ok(own.days < none.days);
+});
+
+test("ownedModels en 0 no cambia la ruta", () => {
+  const o = { current: 0, premium: "lottery", modelsPerDay: 2, followers: 60 };
+  assert.equal(E.projectRoute(cfg, Object.assign({ ownedModels: 0 }, o)).days, E.projectRoute(cfg, o).days);
+});
+
+test("modelos más viejos ya van por bloques más caros y dejan más puntos", () => {
+  const o = { current: 0, premium: false, modelsPerDay: 0, followers: 150, ownedModels: 98, marks: [30] };
+  const young = E.projectRoute(cfg, Object.assign({ ownedAge: 15 }, o)).snapshots[30];
+  const old = E.projectRoute(cfg, Object.assign({ ownedAge: 240 }, o)).snapshots[30];
+  assert.ok(old > young);
+});
+
+test("98 modelos ya subidos y unos 150 seguidores juntan entre 10.000 y 18.000 en un mes sin subir nada", () => {
+  const r = E.projectRoute(cfg, { current: 0, premium: "lottery", modelsPerDay: 0, followers: 150, ownedModels: 98, ownedAge: 120, marks: [30] });
+  assert.ok(r.snapshots[30] > 10000 && r.snapshots[30] < 18000, "mes " + r.snapshots[30]);
+});
+
+test("modelos ya subidos acortan la ruta aunque sigas subiendo", () => {
+  const o = { current: 0, premium: "lottery", modelsPerDay: 1, followers: 60 };
+  const a = E.projectRoute(cfg, o).days;
+  const b = E.projectRoute(cfg, Object.assign({ ownedModels: 98, ownedAge: 120 }, o)).days;
+  assert.ok(b < a * 0.7, a + " vs " + b);
+});
+
+/* ---------- perfiles de impresión ---------- */
+
+test("los perfiles de impresión están en la configuración: 10 puntos por cada 10 descargas del perfil", () => {
+  assert.equal(cfg.profile.blockSize, 10);
+  assert.equal(cfg.profile.points, 10);
+  assert.ok(cfg.profile.perDownload > 0 && cfg.profile.perDownload <= 1);
+});
+
+test("el perfil NO es incremental: cada bloque de 10 descargas del perfil paga siempre 10", () => {
+  const per = cfg.profile.perDownload;
+  const d1 = Math.ceil(10 / per);       // descargas del modelo para llegar al primer bloque del perfil
+  assert.equal(E.profileBlocks(cfg, d1 - 1), 0);
+  assert.equal(E.profileBlocks(cfg, d1), 1);
+  assert.equal(E.profilePoints(cfg, d1), 10);
+  // 10 bloques de perfil = 100 puntos (si fuera incremental serían 550)
+  const d10 = Math.ceil(100 / per);
+  assert.equal(E.profileBlocks(cfg, d10), 10);
+  assert.equal(E.profilePoints(cfg, d10), 100);
+  // las descargas del modelo sí suben de bloque: ahí 10 bloques son 550
+  assert.equal(E.pointsForDownloads(cfg, 100), 550);
+});
+
+test("un modelo que se descarga mucho cobra descargas del modelo y perfil por separado", () => {
+  const s = fresh();
+  s.models.push({ id: 1, name: "Éxito", age: 0, downloads: 0, frac: 0, blocksPaid: 0, profBlocks: 0, kind: "hit", perDay: 1, seasonal: false });
+  for (let i = 0; i < 400; i++) E.nextDay(s, cfg, NB);
+  assert.equal(s.models[0].downloads, 400);
+  assert.equal(s.earned.downloads, E.pointsForDownloads(cfg, 400) + E.profilePoints(cfg, 400));
+  assert.ok(E.profilePoints(cfg, 400) > 0);
+});
+
+test("un modelo guardado antes de esta regla no cobra de golpe los perfiles viejos", () => {
+  const s = fresh();
+  s.models.push({ id: 1, name: "Viejo", age: 300, downloads: 400, frac: 0, blocksPaid: 40, kind: "hit", perDay: 1, seasonal: false });
+  E.nextDay(s, cfg, NB);
+  assert.ok(s.earned.downloads <= cfg.downloadRate.cap + cfg.profile.points, "ganó " + s.earned.downloads);
+});
+
+test("con perDownload en 0 los perfiles no dan nada", () => {
+  const off = Object.assign({}, cfg, { profile: { blockSize: 10, points: 10, perDownload: 0 } });
+  assert.equal(E.profilePoints(off, 5000), 0);
+  assert.ok(E.expectedModelPoints(cfg, 100, 200) > E.expectedModelPoints(off, 100, 200));
+});
+
+test("los perfiles suman unos puntos a un mes real, sin cambiar mucho la cifra", () => {
+  const off = Object.assign({}, cfg, { profile: { blockSize: 10, points: 10, perDownload: 0 } });
+  const a = E.libraryPoints(off, 1, 300, 90, 0).points, b = E.libraryPoints(cfg, 1, 300, 90, 0).points;
+  assert.ok(b > a && b < a * 1.2, a + " vs " + b);
+});

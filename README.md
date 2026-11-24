@@ -18,8 +18,8 @@ El progreso se ve como un termómetro de mercurio dorado: 0 puntos son 36 °C y 
   - **Temporada**: los modelos que siguen la temática del momento (ahora, Navidad) juntan ×4 descargas durante los primeros 35 días y después vuelven a su ritmo normal. Se elige al subir modelos en el simulador, y la ruta y la tabla de descargas tienen su propio selector (normales, la mitad o todos de temporada). Los modelos viejos no se apagan con el tiempo.
   - **Boosts**: de vez en cuando alguien te da boosts. Cada boost vale 100 puntos y cada persona da de 1 a 4. Llegan más cuantos más descargas tengas (unos 2 por cada 100 en el mes real), y sin modelos no hay boosts.
   - Saltos de 7, 30, 90 días y 6 meses registrándote cada día.
-- **Descargas**: cada bloque de 10 descargas paga 10 puntos más que el anterior, hasta 120. Incluye una tabla de lo que dejan 1, 2 o 5 modelos por día.
-- **Ruta**: calculadora de cuánto tardas según tus hábitos (puntos de hoy, Premium, modelos por día y seguidores).
+- **Descargas**: cada bloque de 10 descargas paga 10 puntos más que el anterior, hasta 120. Los perfiles de impresión pagan aparte: 10 puntos fijos por cada 10 descargas del perfil. Incluye una tabla de lo que dejan 1, 2 o 5 modelos por día.
+- **Ruta**: calculadora de cuánto tardas según tus hábitos (puntos de hoy, Premium, modelos por día, seguidores y modelos que ya tienes subidos). Muestra también la probabilidad de que te toque Premium al menos una vez en un mes y en tres.
 - **Tienda de regalos y canje de prueba**: MakeNow, check-in Card y la impresora. No canjea nada real.
 - **Rutina**: lista diaria y semanal que se guarda en el navegador.
 
@@ -38,6 +38,7 @@ El simulador se ajustó con el panel de una cuenta real de Creality Cloud: **98 
 
 - **Descargas**: salen de una mezcla de tipos de modelo (`modelTypes`): la mitad casi no se mueve, un cuarto va lento y apenas uno de cada cien despega. Los seguidores multiplican las descargas de todos los modelos (`followerFactor`).
 - **Boosts**: dependen de las descargas (`boost.perDownload`). En el mes real fueron unos 2 boosts por cada 100 descargas. Sin modelos no hay boosts.
+- **Perfiles de impresión**: cada 10 descargas de un perfil dan 10 puntos, siempre lo mismo (no suben de bloque como las descargas del modelo). Se supuso 1 descarga de perfil por cada 4 del modelo (`profile.perDownload`, sacado de las 428 impresiones del mes real). Es un supuesto: ajústalo con tus datos.
 - **Vistas**: por cada descarga salen unas 4,6 vistas (`viewsPerDownload`).
 - **El supuesto que más pesa**: el panel no dice cuántos seguidores tiene la cuenta, así que se supuso que son unos 300 (`reference.followers`). Si el número real es otro, cámbialo, ajusta `modelTypes` hasta que las pruebas vuelvan a pasar y listo.
 - **Límite del cálculo**: los seguidores se quedan fijos mientras pasan los días. En la vida real crecen poco a poco, así que el simulador va más rápido al principio y no reproduce una historia completa de 264 días: esa cuenta juntó la mayor parte de sus puntos en los últimos dos meses.
@@ -52,6 +53,16 @@ El mes real de arriba no incluía modelos de Navidad, así que mide el ritmo **s
 - **Qué cambia**: las descargas del modelo y, como los boosts siguen a las descargas, también sus boosts.
 - **Para otra fecha**: cambia `season.label`, `multiplier` y `days` (por ejemplo para San Valentín o Halloween). Con `multiplier: 1` desaparece todo lo de temporada.
 - Con pocos modelos al principio, 35 días de temporada acortan la ruta unos 10 a 20 días; el efecto grande se ve en el primer mes.
+
+## Premium: probabilidad en un mes
+
+Con las probabilidades de ejemplo de la lotería y registrándote todos los días, juntas 12 boletos al mes y la probabilidad de que te toque Premium al menos una vez es de unos 23 %, y de unos 56 % en tres meses (`1 - (1 - p)^boletos`). La guía y la ruta muestran ese número.
+
+Por la experiencia del autor, las cuentas que suben más modelos y mantienen la racha ganan Premium más seguido. **No es una regla oficial**: se aplica como una ventaja pequeña en `premiumLuck` (`js/config.js`): el peso del Premium se multiplica por `1 + 0,15 × modelos por día` (tope `1 + 0,6`) cuando llevas 7 días o más de racha. Con 4 modelos al día, la probabilidad en un mes pasa de 23 % a unos 34 %. Si en tu cuenta sale distinto, cambia esos números; con `perModelPerDay: 0` se apaga.
+
+## Modelos que ya tienes subidos
+
+La ruta puede empezar con modelos ya publicados (edad promedio a elegir). Los modelos más viejos ya van por bloques de descargas más caros, así que una cuenta con 98 modelos y unos 150 seguidores junta del orden de 10.000 a 18.000 puntos en un mes sin subir nada, no el cálculo de una cuenta que empieza de cero.
 
 ## Verla en tu computador
 

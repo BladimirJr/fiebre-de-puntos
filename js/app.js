@@ -260,6 +260,20 @@
     $("#lt-extra").textContent = state.spins > 0
       ? "Llevas " + state.spins + " " + plural(state.spins, "giro", "giros") + " y " + state.cloudGB + " GB de nube ganados."
       : "";
+    renderPremiumChance();
+  }
+
+  // Probabilidad de que te toque al menos un mes de Premium en los próximos 30 días,
+  // con tus boletos, tu racha y los modelos que subiste esta semana.
+  function renderPremiumChance() {
+    const rate = E.recentUploadRate(state);
+    const full = state.premiumDays >= 30;
+    const now = E.premiumChance(cfg, { tickets: state.tickets, modelsPerDay: rate, streak: state.streak, premium: full });
+    const best = E.premiumChance(cfg, { tickets: state.tickets, modelsPerDay: Math.max(rate, 1), premium: full });
+    let t = "Premium: " + fmt(now.chance * 100) + " % de que te toque al menos un mes en los próximos 30 días si te registras todos los días.";
+    if (now.luck > 1) t += " Ya cuenta tu racha y tus modelos nuevos.";
+    else if (best.luck > now.luck) t += " Con " + cfg.premiumLuck.streakDays + " días seguidos de racha y modelos nuevos cada día subiría a " + fmt(best.chance * 100) + " %.";
+    $("#lt-premium").textContent = t;
   }
   function describePrize(prize) {
     if (prize.kind === "premium") {
@@ -488,7 +502,11 @@
     const mpd = num("#r-mpd", 0);
     const fol = clamp(num("#r-followers", 0), 0, 2000);
     const share = HAS_SEASON ? parseFloat($("#r-season").value) || 0 : 0;
-    const r = E.projectRoute(cfg, { current: cur, premium: mode, modelsPerDay: mpd, followers: fol, seasonShare: share, marks: [30, 90, 180] });
+    const owned = clamp(Math.floor(num("#r-owned", 0)), 0, 2000);
+    const ownedAge = parseFloat($("#r-owned-age").value) || 120;
+    $("#r-owned-age-field").hidden = owned === 0;
+    const base = { current: cur, premium: mode, modelsPerDay: mpd, followers: fol, ownedModels: owned, ownedAge: ownedAge };
+    const r = E.projectRoute(cfg, Object.assign({}, base, { seasonShare: share, marks: [30, 90, 180] }));
     const big = $("#ro-months"), unit = $("#ro-unit"), sub = $("#ro-sub");
     if (r.days === 0) {
       big.textContent = "0";
@@ -511,11 +529,23 @@
     const alt = $("#ro-alt");
     alt.hidden = !HAS_SEASON || mpd === 0 || r.days === 0;
     if (!alt.hidden) {
-      const other = E.projectRoute(cfg, { current: cur, premium: mode, modelsPerDay: mpd, followers: fol, seasonShare: share > 0 ? 0 : 1 });
+      const other = E.projectRoute(cfg, Object.assign({}, base, { seasonShare: share > 0 ? 0 : 1 }));
       const ot = other.days === null ? "más de 10 años" : durationText(other.days).big + " " + durationText(other.days).unit;
       alt.textContent = (share > 0 ? "Con modelos normales tardarías " : "Si todos tus modelos nuevos fueran de " + seasonName() + ", llegarías en ") + ot + ".";
     }
-    const names = { checkin: "Registro diario", lottery: "Lotería (sin premios gordos)", downloads: "Descargas de modelos", boost: "Boosts" };
+    // probabilidad de Premium (solo si dejas que la lotería lo dé)
+    const pm = $("#ro-premium");
+    pm.hidden = mode !== "lottery" || r.days === 0;
+    if (!pm.hidden) {
+      const m1 = E.premiumChance(cfg, { modelsPerDay: mpd, days: 30 }), m3 = E.premiumChance(cfg, { modelsPerDay: mpd, days: 90 });
+      let t = "Probabilidad de que te toque Premium al menos una vez: " + fmt(m1.chance * 100) + " % en el primer mes y " + fmt(m3.chance * 100) + " % en tres meses, registrándote todos los días.";
+      if (m1.luck > 1) {
+        const b1 = E.premiumChance(cfg, { modelsPerDay: 0, days: 30 }), b3 = E.premiumChance(cfg, { modelsPerDay: 0, days: 90 });
+        t += " Sin subir modelos serían " + fmt(b1.chance * 100) + " % y " + fmt(b3.chance * 100) + " %.";
+      }
+      pm.textContent = t;
+    }
+    const names = { checkin: "Registro diario", lottery: "Lotería (sin premios gordos)", downloads: "Descargas y perfiles", boost: "Boosts" };
     const parts = ["checkin", "lottery", "downloads", "boost"].map((k) => ({ k: k, name: names[k], v: r.parts[k] }));
     const sum = parts.reduce((a, p) => a + p.v, 0) || 1;
     $("#ro-stack").innerHTML = parts.map((p) => '<i style="flex:0 0 ' + ((p.v / sum) * 100).toFixed(2) + "%;background:" + METAL[p.k] + '"></i>').join("");
@@ -543,6 +573,11 @@
     set("followers", "×" + fmt1(E.followerMult(cfg, 100)));
     set("cap", cfg.downloadRate.cap);
     set("boost", cfg.boost.points);
+    if (cfg.profile && cfg.profile.perDownload > 0) set("profile-ratio", fmt1(1 / cfg.profile.perDownload));
+    set("pc-tickets", fmt(E.premiumChance(cfg, { days: 30 }).spins));
+    set("pc-month", fmt(E.premiumChance(cfg, { days: 30 }).chance * 100));
+    set("pc-3months", fmt(E.premiumChance(cfg, { days: 90 }).chance * 100));
+    set("pc-max", fmt(E.premiumChance(cfg, { days: 30, modelsPerDay: 4 }).chance * 100));
     if (cfg.season) {
       set("season-label", cfg.season.label);
       set("season-mult", cfg.season.multiplier);
@@ -601,7 +636,7 @@
     const rows = [
       { name: "Registro diario", v: e.checkin, c: METAL.checkin },
       { name: "Lotería", v: e.lottery, c: METAL.lottery },
-      { name: "Descargas", v: e.downloads, c: METAL.downloads },
+      { name: "Descargas y perfiles", v: e.downloads, c: METAL.downloads },
       { name: "Boosts", v: e.boost, c: METAL.boost },
       { name: "Puntos de prueba", v: e.demo, c: METAL.demo }
     ].filter((r) => r.v > 0);

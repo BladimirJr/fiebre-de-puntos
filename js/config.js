@@ -68,6 +68,13 @@
       { id: "p4500",   kind: "points",  value: 4500,   weight: 0.4,  rare: true }
     ],
 
+    // Suerte con el Premium. Es una observación del autor, no una regla oficial de Creality:
+    // las cuentas que suben más modelos y mantienen la racha ganan Premium más seguido.
+    // Se aplica así: el peso del Premium en la lotería se multiplica por (1 + bonus), con
+    // bonus = perModelPerDay × modelos que subes por día, hasta un máximo de "max", y solo
+    // cuando llevas al menos "streakDays" días seguidos de racha. Para apagarlo pon perModelPerDay: 0.
+    premiumLuck: { perModelPerDay: 0.15, max: 0.6, streakDays: 7 },
+
     // Puntos por descargas de un modelo. Cada bloque de 10 descargas paga
     // 10 puntos más que el anterior, hasta llegar al tope de 120:
     // 10, 20, 30 ... 120, 120, 120 ...
@@ -77,6 +84,14 @@
       step: 10,       // cuánto sube cada bloque
       cap: 120        // tope por bloque
     },
+
+    // Perfiles de impresión: cuando alguien descarga el perfil de impresión de un modelo, cada 10
+    // descargas del perfil pagan 10 puntos. Es un pago aparte del de las descargas del modelo y
+    // NO es incremental: siempre son 10 puntos por bloque, no suben de bloque en bloque.
+    // "perDownload" es cuántas descargas de perfil salen por cada descarga del modelo. Es un SUPUESTO
+    // sacado del mes real de "reference" (428 impresiones / 1.700 descargas, cerca de 0,25): si tus
+    // perfiles se descargan distinto, cámbialo. Con perDownload: 0 desaparece esta fuente.
+    profile: { blockSize: 10, points: 10, perDownload: 0.25 },
 
     // Descargas de cada modelo. Creality muestra los modelos nuevos igual que los demás,
     // así que no hay ventaja por ser reciente. Pero tampoco todos los modelos se mueven igual:

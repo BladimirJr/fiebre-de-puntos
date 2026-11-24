@@ -211,6 +211,19 @@
     return k * r.start + r.step * k * (k - 1) / 2 + (n - k) * r.cap;
   }
 
+  // Bloques de perfil de impresión pagados por un modelo con "modelDownloads" descargas.
+  // Cada descarga del modelo trae "perDownload" descargas de perfil y cada 10 de perfil pagan 10 puntos fijos.
+  function profileBlocks(cfg, modelDownloads) {
+    var p = cfg.profile;
+    if (!p || !(p.perDownload > 0)) return 0;
+    return Math.floor(Math.floor(Math.max(0, modelDownloads) * p.perDownload) / p.blockSize);
+  }
+
+  // Puntos que deja el perfil de impresión de UN modelo que llega a "modelDownloads" descargas.
+  function profilePoints(cfg, modelDownloads) {
+    return cfg.profile ? profileBlocks(cfg, modelDownloads) * cfg.profile.points : 0;
+  }
+
   // Cuánto se multiplican las descargas de todos tus modelos según tus seguidores mutuos.
   function followerMult(cfg, followers) {
     return 1 + Math.max(0, followers) * cfg.followerFactor;
@@ -254,7 +267,7 @@
     for (var i = 0; i < n; i++) {
       var t = pickModelType(cfg, rng || Math.random);
       s.modelCounter += 1;
-      s.models.push({ id: s.modelCounter, name: "Modelo " + s.modelCounter, age: 0, downloads: 0, frac: 0, blocksPaid: 0, kind: t.id, perDay: t.perDay, seasonal: !!(s.settings.seasonal && seasonMultiplier(cfg) > 1) });
+      s.models.push({ id: s.modelCounter, name: "Modelo " + s.modelCounter, age: 0, downloads: 0, frac: 0, blocksPaid: 0, profBlocks: 0, kind: t.id, perDay: t.perDay, seasonal: !!(s.settings.seasonal && seasonMultiplier(cfg) > 1) });
     }
   }
 
@@ -280,6 +293,13 @@
         gained += blockRate(cfg, m.blocksPaid);
         m.blocksPaid += 1;
       }
+      // perfil de impresión: 10 puntos fijos por cada 10 descargas del perfil
+      var pb = profileBlocks(cfg, m.downloads);
+      if (m.profBlocks === undefined) m.profBlocks = pb; // modelo guardado antes de esta regla: no se paga de golpe
+      if (pb > m.profBlocks) {
+        gained += (pb - m.profBlocks) * cfg.profile.points;
+        m.profBlocks = pb;
+      }
     }
     s.points += gained;
     s.earned.downloads += gained;
@@ -290,7 +310,7 @@
   // "extra" son días de descargas de más (por ejemplo los de una temporada), ya multiplicados.
   function expectedModelPoints(cfg, followers, age, extra) {
     var mult = followerMult(cfg, followers), sum = 0, days = age + (extra || 0);
-    cfg.modelTypes.forEach(function (t) { sum += t.share * pointsForDownloads(cfg, t.perDay * mult * days); });
+    cfg.modelTypes.forEach(function (t) { var d = t.perDay * mult * days; sum += t.share * (pointsForDownloads(cfg, d) + profilePoints(cfg, d)); });
     return sum / totalShare(cfg);
   }
 
@@ -450,10 +470,58 @@
 
   /* ----- lotería ----- */
 
+  // Cuánto se multiplica el peso del Premium en la lotería (1 = sin ventaja).
+  // Según la experiencia del autor, subir modelos y mantener la racha ayuda: ver cfg.premiumLuck.
+  // "modelsPerDay" son los modelos que subes por día y "streak" los días seguidos de racha
+  // (si no se da, se cuenta como una racha completa).
+  function premiumLuck(cfg, modelsPerDay, streak) {
+    var l = cfg.premiumLuck;
+    if (!l || !(l.perModelPerDay > 0)) return 1;
+    if (streak !== undefined && streak < l.streakDays) return 1;
+    return 1 + Math.min(l.max, l.perModelPerDay * Math.max(0, modelsPerDay || 0));
+  }
+
+  // Modelos que subes por día en la última semana (cuenta los modelos de menos de 7 días).
+  function recentUploadRate(s) {
+    var n = 0;
+    for (var i = 0; i < s.models.length; i++) if (s.models[i].age < 7) n += 1;
+    return n / 7;
+  }
+
+  // Peso de cada premio con la suerte del Premium aplicada.
+  function raffleWeights(cfg, luck) {
+    return cfg.raffle.map(function (p) { return p.kind === "premium" ? p.weight * (luck || 1) : p.weight; });
+  }
+
   // Probabilidad (de 0 a 1) de cada premio de la cuadrícula, según su peso.
-  function chances(cfg) {
-    var total = cfg.raffle.reduce(function (a, p) { return a + p.weight; }, 0);
-    return cfg.raffle.map(function (p) { return total ? p.weight / total : 0; });
+  // "luck" (opcional) es la suerte del Premium (ver premiumLuck).
+  function chances(cfg, luck) {
+    var w = raffleWeights(cfg, luck);
+    var total = w.reduce(function (a, x) { return a + x; }, 0);
+    return w.map(function (x) { return total ? x / total : 0; });
+  }
+
+  // Probabilidad de que un solo giro dé un mes de Premium.
+  function premiumPerSpin(cfg, luck) {
+    var w = raffleWeights(cfg, luck), total = 0, prem = 0;
+    cfg.raffle.forEach(function (p, i) {
+      total += w[i];
+      if (p.kind === "premium") prem += w[i];
+    });
+    return total ? Math.min(1, prem / total) : 0;
+  }
+
+  // Probabilidad de que te toque al menos 1 mes de Premium en "days" días (30 por defecto).
+  // Cuenta los boletos que ya tienes ("tickets") más los del registro diario si no faltas ningún día.
+  // Opciones: modelsPerDay, streak (días de racha; sin dato = racha completa), premium (true si ya
+  // tienes Premium todo ese tiempo y los boletos valen doble), tickets, days.
+  function premiumChance(cfg, o) {
+    o = o || {};
+    var days = o.days || 30;
+    var luck = premiumLuck(cfg, o.modelsPerDay, o.streak);
+    var spins = Math.max(0, o.tickets || 0) + monthlyCheckin(cfg, !!o.premium, days).tickets;
+    var perSpin = premiumPerSpin(cfg, luck);
+    return { days: days, spins: spins, perSpin: perSpin, luck: luck, chance: 1 - Math.pow(1 - perSpin, spins) };
   }
 
   // Puntos esperados por giro sin contar los premios gordos (los marcados "rare").
@@ -470,10 +538,11 @@
   function spin(s, cfg, rng) {
     rng = rng || Math.random;
     if (s.tickets < 1) return null;
-    var total = cfg.raffle.reduce(function (a, p) { return a + p.weight; }, 0);
+    var w = raffleWeights(cfg, premiumLuck(cfg, recentUploadRate(s), s.streak));
+    var total = w.reduce(function (a, x) { return a + x; }, 0);
     var r = rng() * total, index = cfg.raffle.length - 1;
-    for (var i = 0; i < cfg.raffle.length; i++) {
-      r -= cfg.raffle[i].weight;
+    for (var i = 0; i < w.length; i++) {
+      r -= w[i];
       if (r < 0) { index = i; break; }
     }
     var prize = cfg.raffle[index];
@@ -536,15 +605,16 @@
   // Qué parte del tiempo tienes Premium, de 0 a 1.
   //   false o "no": nunca. true o "always": siempre.
   //   "lottery": solo con los meses que te toquen en la lotería (promedio de muchos giros).
-  function premiumShare(cfg, mode) {
+  function premiumShare(cfg, mode, modelsPerDay) {
     if (mode === true || mode === "always") return 1;
     if (mode !== "lottery") return 0;
-    var tickets = 0, total = 0, months = 0;
+    var tickets = 0;
     cfg.checkin.forEach(function (c) { if (c.type === "ticket") tickets += c.value; });
     var ticketsPerDay = tickets / cfg.checkin.length;
-    cfg.raffle.forEach(function (p) {
-      total += p.weight;
-      if (p.kind === "premium") months += p.weight * p.value;
+    var months = 0, total = 0, w = raffleWeights(cfg, premiumLuck(cfg, modelsPerDay));
+    cfg.raffle.forEach(function (p, i) {
+      total += w[i];
+      if (p.kind === "premium") months += w[i] * p.value;
     });
     var perSpin = total ? months / total : 0;
     var boost = cfg.premiumDoublesTickets ? cfg.premiumMultiplier - 1 : 0;
@@ -567,10 +637,10 @@
   }
 
   // Ruta estimada a la meta, día por día y con valores esperados (sin azar).
-  // Supone que no faltas ningún día y que empiezas sin modelos.
+  // Supone que no faltas ningún día y que empiezas sin modelos, salvo los que indiques en ownedModels.
   function projectRoute(cfg, o) {
     var mpd = Math.max(0, o.modelsPerDay || 0), fol = Math.max(0, o.followers || 0);
-    var q = premiumShare(cfg, o.premium);
+    var q = premiumShare(cfg, o.premium, mpd);
     var mult = 1 + q * (cfg.premiumMultiplier - 1);
     var tmult = cfg.premiumDoublesTickets ? mult : 1;
     var cur = Math.max(0, o.current || 0);
@@ -584,6 +654,11 @@
     var M = seasonMultiplier(cfg);
     var f = M > 1 ? clamp(o.seasonShare || 0, 0, 1) : 0;
     var SD = M > 1 ? cfg.season.days : 0;
+    // Modelos que ya tenías subidos al empezar ("owned"), con una edad promedio en días ("ownedAge").
+    // No suben más descargas por ser viejos: siguen con su ritmo, pero ya van por un bloque más caro.
+    var owned = Math.max(0, Math.floor(o.ownedModels || 0));
+    var ownedAge = Math.max(0, Math.round(o.ownedAge === undefined ? 120 : o.ownedAge));
+    var ownedBase = owned ? expectedModelPoints(cfg, fol, ownedAge) : 0;
     var emp = [0], prefix = [0];   // emp[a]: puntos esperados de un modelo de a días; prefix: sus sumas
     var marks = o.marks || [30, 90, 180, 365];
     var checkin = 0, lottery = 0, boost = 0;
@@ -593,7 +668,7 @@
       if (slot.type === "points") checkin += slot.value * mult;
       else lottery += slot.value * tmult * spinEV;
       var inSeason = f && t <= SD ? 1 + f * (M - 1) : 1;
-      var lambda = mpd > 0 ? Math.min(20, cfg.boost.baseRate + cfg.boost.perDownload * mpd * t * perModelDay * inSeason) : 0;
+      var lambda = mpd > 0 || owned > 0 ? Math.min(20, cfg.boost.baseRate + cfg.boost.perDownload * (owned + mpd * t * inSeason) * perModelDay) : 0;
       boost += lambda * boostEV;
       emp[t] = expectedModelPoints(cfg, fol, t);
       prefix[t] = prefix[t - 1] + emp[t];
@@ -606,7 +681,7 @@
           S += (1 - f) * emp[a] + f * expectedModelPoints(cfg, fol, a, (M - 1) * (a - skip));
         }
       }
-      var downloads = mpd * S;
+      var downloads = mpd * S + (owned ? owned * (expectedModelPoints(cfg, fol, ownedAge + t) - ownedBase) : 0);
       var total = cur + checkin + lottery + boost + downloads;
       if (marks.indexOf(t) >= 0) snaps[t] = total;
       if (hit === null && total >= cfg.goal) {
@@ -638,6 +713,8 @@
     blocksToCap: blocksToCap,
     tierRate: tierRate,
     pointsForDownloads: pointsForDownloads,
+    profileBlocks: profileBlocks,
+    profilePoints: profilePoints,
     downloadsPerDay: downloadsPerDay,
     followerMult: followerMult,
     expectedModelPoints: expectedModelPoints,
@@ -658,6 +735,10 @@
     buyItem: buyItem,
     grantDemoPoints: grantDemoPoints,
     libraryPoints: libraryPoints,
+    premiumLuck: premiumLuck,
+    premiumChance: premiumChance,
+    premiumPerSpin: premiumPerSpin,
+    recentUploadRate: recentUploadRate,
     monthlyCheckin: monthlyCheckin,
     premiumShare: premiumShare,
     projectRoute: projectRoute,

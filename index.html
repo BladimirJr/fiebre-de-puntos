@@ -127,6 +127,7 @@
             <div class="source-body">
               <h3>Descargas de tus modelos</h3>
               <p>Cada modelo paga por bloques de 10 descargas. El primer bloque paga 10 puntos, el siguiente 20, y cada bloque paga 10 más hasta llegar a 120.</p>
+              <p>Los perfiles de impresión pagan aparte: cada 10 descargas del perfil dan siempre 10 puntos, sin subir de bloque.</p>
               <p>Creality muestra tus modelos nuevos igual que los demás, así que ser reciente no da ventaja. Y tampoco todos los modelos se mueven igual: muchos casi no se descargan y a duras penas llegan a 10, y unos pocos son los que dejan casi todos los puntos. En una cuenta real con <span data-fig="ref-models">98</span> modelos, cada uno juntó en promedio unas <span data-fig="ref-dlpm">17</span> descargas al mes, pero ese promedio lo levantan los pocos que funcionan. Los números completos de ese mes están <a href="#real">más abajo</a>.</p>
               <p>La temática también cuenta. Los modelos que siguen la temporada, como los de <span data-fig="season-label">Navidad</span> ahora, juntan bastantes más descargas: en la cuenta del autor, de 3 a 5 veces más que los modelos de otros temas. Esa ventaja dura lo que dura la temporada, y los modelos que ya tenías no se apagan con el tiempo.</p>
               <p class="do">Qué hacer: sube con constancia, mira cuáles se descargan y haz más de lo que funciona.</p>
@@ -199,9 +200,10 @@
               <div class="lottery-side">
                 <p class="spin-result" id="spin-result" role="status" aria-live="polite">Consigue boletos en el registro diario: aparecen en los días 3 y 7 de la tabla.</p>
                 <p class="hint" id="lt-extra"></p>
+                <p class="hint" id="lt-premium"></p>
                 <button class="btn btn-ghost" id="btn-spin-all" data-action="spin-all" type="button">Girar todos</button>
                 <ul class="legend" id="legend" aria-label="Premios y probabilidades de ejemplo"></ul>
-                <p class="hint">Probabilidades de ejemplo, no oficiales. El Premium no duplica estos premios.</p>
+                <p class="hint">Probabilidades de ejemplo, no oficiales. El Premium no duplica estos premios. Subir modelos y mantener la racha sube un poco la del Premium.</p>
               </div>
             </div>
           </div>
@@ -330,7 +332,7 @@
     <section class="section dark" id="ruta">
       <div class="wrap">
         <h2>Calcula tu ruta a <span data-goal>40.900</span></h2>
-        <p class="section-lede">Escribe cómo piensas jugar y mira cuánto tardas. Es un cálculo con promedios: registro todos los días, boletos girados, boosts y descargas de los modelos que subes, contando que muchos de ellos casi no se mueven. La suerte cambia el resultado, sobre todo con los modelos que despegan y los meses de Premium.</p>
+        <p class="section-lede">Escribe cómo piensas jugar y mira cuánto tardas. Es un cálculo con promedios: registro todos los días, boletos girados, boosts y descargas de los modelos que subes (y de los que ya tienes), contando que muchos de ellos casi no se mueven. La suerte cambia el resultado, sobre todo con los modelos que despegan y los meses de Premium.</p>
 
         <div class="route">
           <form class="ficha route-form" id="route-form" onsubmit="return false">
@@ -359,6 +361,19 @@
               <label for="r-followers">Seguidores mutuos</label>
               <input class="num" id="r-followers" type="number" min="0" max="2000" step="10" value="60" inputmode="numeric">
             </div>
+            <div class="field">
+              <label for="r-owned">Modelos que ya tienes subidos</label>
+              <input class="num" id="r-owned" type="number" min="0" max="2000" step="1" value="0" inputmode="numeric">
+            </div>
+            <div class="field" id="r-owned-age-field" hidden>
+              <label for="r-owned-age">Hace cuánto los subiste (en promedio)</label>
+              <select class="num" id="r-owned-age">
+                <option value="15">Menos de 1 mes</option>
+                <option value="60">Unos 2 meses</option>
+                <option value="120" selected>Unos 4 meses</option>
+                <option value="240">8 meses o más</option>
+              </select>
+            </div>
             <div class="field" id="r-season-field">
               <label for="r-season">Temática de tus modelos nuevos</label>
               <select class="num" id="r-season"></select>
@@ -369,6 +384,7 @@
             <p class="route-big"><span id="ro-months">0</span><span class="route-unit" id="ro-unit">meses</span></p>
             <p class="route-sub" id="ro-sub"></p>
             <p class="route-sub" id="ro-alt"></p>
+            <p class="route-sub" id="ro-premium"></p>
             <div class="stack" id="ro-stack" role="img" aria-label="Aporte por fuente"></div>
             <ul class="stack-legend" id="ro-legend"></ul>
             <p class="snaps" id="ro-snaps"></p>
@@ -445,12 +461,17 @@
             <p>Sí. Si la lotería te da un mes y antes de que termine te da otro, los dos se acumulan.</p>
           </details>
           <details>
+            <summary>¿Qué tan probable es ganar Premium en un mes?</summary>
+            <p>Con las probabilidades de ejemplo de esta guía y registrándote todos los días, juntas unos <b data-fig="pc-tickets">12</b> boletos al mes y la probabilidad de que te toque Premium al menos una vez es de unos <b data-fig="pc-month">23</b> %; en tres meses sube a unos <b data-fig="pc-3months">56</b> %. Según la experiencia de quien escribe, las cuentas que suben más modelos y mantienen la racha ganan Premium más seguido, y la guía lo cuenta como una ventaja pequeña: con 4 modelos al día, hasta unos <b data-fig="pc-max">34</b> % en un mes. No es una regla oficial: si en tu cuenta sale distinto, cambia <code>premiumLuck</code> en <code>js/config.js</code>.</p>
+          </details>
+          <details>
             <summary>¿Qué duplica el Premium?</summary>
             <p>La tabla del registro diario. Los puntos valen el doble y también los boletos: cuando te toca 1 boleto recibes 2, y cuando te tocan 2 al completar la semana recibes 4. Los premios dentro de la ruleta no se duplican: 100 puntos siguen siendo 100.</p>
           </details>
           <details>
             <summary>¿Cómo funcionan los puntos por descargas?</summary>
             <p>Cada modelo cuenta sus descargas en bloques de 10. El primer bloque paga 10 puntos, el segundo 20, el tercero 30, y así hasta 120 puntos por bloque. Desde ahí, cada 10 descargas siguen pagando 120.</p>
+            <p>Aparte, cuando alguien descarga el <b>perfil de impresión</b> de tu modelo, cada 10 descargas del perfil dan 10 puntos. Ese pago no es incremental: siempre son 10, sea el primer bloque o el centésimo. La guía supone que por cada <span data-fig="profile-ratio">4</span> descargas del modelo hay una de perfil (<code>profile.perDownload</code> en <code>js/config.js</code>); si en tu cuenta es distinto, cámbialo.</p>
           </details>
           <details>
             <summary>¿Subir modelos nuevos ayuda más que tener modelos viejos?</summary>
